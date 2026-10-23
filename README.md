@@ -66,6 +66,8 @@ The default wall timeout is 2 seconds, CPU cap 2 seconds, input and capture caps
 
 Reference execution is available with `beryl run --exec CANDIDATE --reference BASELINE --input FILE`. [Comparison policies](docs/DIFFERENTIAL.md) select output, status-only, or output plus streams; explicit CRLF normalization is optional. Different behavior is reported as REGRESSION_CANDIDATE, not automatically a bug. Both executions can be replayed from the same archived case.
 
-The implemented scope includes the runner, strict record parsing/codecs, generation, JSON/JUnit reports and reference execution. Target execution still supports one input and one required output. Fuzz campaigns, minimization, verified coverage, and IBM/z/OS support are future work. See [compatibility](docs/COMPATIBILITY.md) and the [one-page COBOL primer](docs/COBOL_PRIMER.md). A difference indicates a contract mismatch; it does not prove the golden data represents correct business behavior.
+Seeded [fuzz campaigns](docs/FUZZING.md) support valid field mutation, intentionally invalid storage/length mutation, and raw byte mutation. They preserve/replay each case and group confirmed matching failure signatures without claiming unique root causes.
+
+The implemented scope includes the runner, strict record parsing/codecs, generation, JSON/JUnit reports, reference execution and bounded fuzz campaigns. Target execution still supports one input and one required output. Minimization, verified coverage, and IBM/z/OS support are future work. See [compatibility](docs/COMPATIBILITY.md) and the [one-page COBOL primer](docs/COBOL_PRIMER.md). A difference indicates a contract mismatch; it does not prove the golden data represents correct business behavior.
 
 The repository's existing `LICENSE` has been preserved without selecting or replacing a license.

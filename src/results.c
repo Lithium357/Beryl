@@ -36,7 +36,9 @@ int save_result(const Config *c,const Result *r,int archive) {
     fprintf(f,"target_sha256=%s\ninput_sha256=%s\nexpected_sha256=%s\noutput_sha256=%s\n",r->target_hash,r->input_hash,r->expected_hash,r->output_hash);
     char envhash[65];hash_bytes(c->environment.data,c->environment.len,envhash);fprintf(f,"environment_sha256=%s\n",envhash);
     fprintf(f,"has_expected=%d\nexpected_exit=%d\ntimeout_ms=%u\ncpu_seconds=%u\nmax_input=%zu\nmax_capture=%zu\nmax_file=%zu\n",c->has_expected,c->expected_exit,c->timeout_ms,c->cpu_seconds,c->max_input,c->max_capture,c->max_file);
-    fprintf(f,"exit_code=%d\nsignal=%d\nexec_errno=%d\nduration_ms=%" PRIu64 "\nstdout_truncated=%d\nstderr_truncated=%d\noutput_truncated=%d\nmissing_output=%d\nseed=none\n",r->exit_code,r->signal_number,r->exec_errno,r->duration_ms,r->out.truncated,r->err.truncated,r->output.truncated,r->missing_output);
+    fprintf(f,"exit_code=%d\nsignal=%d\nexec_errno=%d\nduration_ms=%" PRIu64 "\nstdout_truncated=%d\nstderr_truncated=%d\noutput_truncated=%d\nmissing_output=%d\n",r->exit_code,r->signal_number,r->exec_errno,r->duration_ms,r->out.truncated,r->err.truncated,r->output.truncated,r->missing_output);
+    if(c->seeded)fprintf(f,"seed=%" PRIu64 "\ncase_index=%" PRIu64 "\n",c->seed,c->case_index);else fputs("seed=none\n",f);
+    text_value(f,"mutation",c->mutation);fprintf(f,"layout_sha256=%s\n",c->layout_hash);
     text_value(f,"argv0",c->target);fprintf(f,"argc=%zu\n",c->argc);
     for(size_t i=0;i<c->argc;i++){char key[32];snprintf(key,sizeof key,"arg%zu",i);text_value(f,key,c->args[i]);}
     char work_path[B_PATH];
@@ -126,6 +128,10 @@ int replay_load(const char *directory,Config *c,char saved_target_hash[65]) {
         else if(!strcmp(line,"compiler")){if(decode(v,c->compiler,sizeof c->compiler)<0)goto done;}
         else if(!strcmp(line,"reference")){if(decode(v,c->reference,sizeof c->reference)<0)goto done;}
         else if(!strcmp(line,"reference_sha256")){if(strlen(v)>64)goto done;strcpy(c->replay_reference_hash,v);}
+        else if(!strcmp(line,"seed")&&strcmp(v,"none")) { char *end;errno=0;if(!*v||*v=='-')goto done;c->seed=strtoull(v,&end,10);if(errno||*end)goto done;c->seeded=true; }
+        else if(!strcmp(line,"case_index")) { unsigned long long n;if(number(v,&n)<0)goto done;c->case_index=(uint64_t)n; }
+        else if(!strcmp(line,"mutation")){if(decode(v,c->mutation,sizeof c->mutation)<0)goto done;}
+        else if(!strcmp(line,"layout_sha256")){if(strlen(v)>64)goto done;strcpy(c->layout_hash,v);}
         else if(!strcmp(line,"comparison") || !strcmp(line,"normalize_crlf")) {
             unsigned long long n;if(number(v,&n)<0 || n>(!strcmp(line,"comparison")?2U:1U))goto done;
             if(!strcmp(line,"comparison"))c->comparison=(unsigned)n;else c->normalize_crlf=n!=0;

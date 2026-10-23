@@ -58,8 +58,11 @@ int save_reports(const Config *c, const Result *r, int directory) {
             r->missing_output ? "true" : "false", r->output.truncated ? "true" : "false");
     stream_json(f, "stdout", &r->out); stream_json(f, "stderr", &r->err);
     char env[65]; hash_bytes(c->environment.data, c->environment.len, env);
-    fprintf(f, ",\n  \"environment_sha256\":\"%s\",\n  \"seed\":null,\n  \"exit_code\":%d,\n  \"signal\":%d,\n  \"exec_errno\":%d,\n  \"duration_ms\":%" PRIu64,
-            env, r->exit_code, r->signal_number, r->exec_errno, r->duration_ms);
+    fprintf(f, ",\n  \"environment_sha256\":\"%s\",\n  \"seed\":",env);
+    if(c->seeded)fprintf(f,"\"%" PRIu64 "\"",c->seed);else fputs("null",f);
+    fprintf(f,",\n  \"case_index\":%" PRIu64 ",\n  \"mutation\":",c->case_index);json_string(f,c->mutation);
+    fprintf(f,",\n  \"layout_sha256\":\"%s\",\n  \"exit_code\":%d,\n  \"signal\":%d,\n  \"exec_errno\":%d,\n  \"duration_ms\":%" PRIu64,
+            c->layout_hash, r->exit_code, r->signal_number, r->exec_errno, r->duration_ms);
     fprintf(f, ",\n  \"settings\":{\"expected_exit\":%d,\"timeout_ms\":%u,\"cpu_seconds\":%u,\"max_input_bytes\":%zu,\"max_capture_bytes\":%zu,\"max_file_bytes\":%zu,\"address_space_bytes\":536870912,\"core_bytes\":0},\n  \"work_directory\":",
             c->expected_exit, c->timeout_ms, c->cpu_seconds, c->max_input, c->max_capture, c->max_file);
     char work[B_PATH];

@@ -1,5 +1,9 @@
 # Actual validation
 
+## Seeded campaigns, Beryl 0.4.0 (2026-10-23)
+
+Debug and ASan/UBSan builds passed all ten CTest suites (13.09 s and 9.54 s). The campaign suite checks 100 valid/invalid mutation pairs, deterministic raw input sequences across independent campaigns, confirmed reference differences and grouping, no-oracle UNVERIFIED outcomes, different-signal/assertion-category predicate rejection, and artifact-budget exhaustion with an honest zero completed count. Existing nine suites remain enabled. Raw testcase provenance is retained in replay manifests/JSON; changing seeds and mutation policy never rewrites an archived case.
+
 ## Reference execution, Beryl 0.3.0 (2026-10-23)
 
 The Debug and ASan/UBSan builds each passed all nine CTest suites (7.71 s and 7.72 s). The new reference suite exercises twelve comparison scenarios plus replay: equality, changed bytes, status-only policy, exit differences, matching nonzero exits, ignored/selected streams, candidate crash, timeout, missing output, raw CRLF differences, and explicitly normalized CRLF. All prior runner, codec, generation and COBOL checks remain enabled. JUnit now maps REGRESSION_CANDIDATE to a failure; all eight classifications are checked. Coverage is explicitly unavailable unless a separately validated adapter collects it.

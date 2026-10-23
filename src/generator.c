@@ -2,6 +2,7 @@
 #include "beryl/beryl.h"
 #include "beryl/record_codec.h"
 #include "beryl/report.h"
+#include "beryl/options.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -69,7 +70,7 @@ static int parse_uint(const char *s, uint64_t max, uint64_t *out) {
     }
     *out = n; return 0;
 }
-static int new_directory(const char *path) {
+int new_directory(const char *path) {
     char parent[B_PATH], leaf[B_PATH];
     if (!*path || strlen(path) >= B_PATH) { errno = EINVAL; return -1; }
     strcpy(parent, path); size_t n = strlen(parent);

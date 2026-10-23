@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
-#define BERYL_VERSION "0.3.0"
+#define BERYL_VERSION "0.4.0"
 #define B_PATH 4096
 #define B_ARGS 64
 #define B_ENV_LIMIT (1024U * 1024U)
@@ -15,6 +15,8 @@ typedef struct {
     char reference[B_PATH], replay_reference_hash[65];
     unsigned comparison; /* 0: status+output, 1: status only, 2: status+output+streams */
     bool normalize_crlf;
+    bool seeded;uint64_t seed,case_index;
+    char mutation[256],layout_hash[65];
     char *args[B_ARGS + 2]; size_t argc;
     unsigned timeout_ms, cpu_seconds; size_t max_input, max_capture, max_file;
     int expected_exit; bool has_expected;

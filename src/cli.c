@@ -1,5 +1,6 @@
 #include "beryl/beryl.h"
 #include "beryl/generator.h"
+#include "beryl/campaign.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,6 +10,7 @@ static void help(void) {
          "Usage: beryl run --exec PATH --input FILE [options]\n"
          "       beryl replay RESULT-DIRECTORY [--exec PATH] [--results DIR]\n"
          "       beryl generate --copybook FILE --count N --seed N --out DIR [--malformed]\n"
+         "       beryl fuzz --exec PATH --copybook FILE --runs N --seed N --results NEW-DIR\n"
          "       beryl --help | --version\n\n"
          "  --input-name NAME       relative input name (INPUT.DAT)\n"
          "  --output-name NAME      required output name (OUTPUT.DAT)\n"
@@ -39,6 +41,7 @@ static int parse_number(const char *s,unsigned long max,unsigned long *n) {
     errno=0;char *end;*n=strtoul(s,&end,10);return errno || *end || *n>max ? -1:0;
 }
 int cli_main(int argc,char **argv) {
+    if(argc>=2 && !strcmp(argv[1],"fuzz"))return fuzz_cli(argc,argv);
     if(argc>=2 && !strcmp(argv[1],"generate"))return generate_cli(argc,argv);
     if(argc==2 && !strcmp(argv[1],"--version")){puts("beryl " BERYL_VERSION);return 0;}
     if(argc==2 && !strcmp(argv[1],"--help")){help();return 0;}
