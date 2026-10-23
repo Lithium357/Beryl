@@ -1,0 +1,4 @@
+/build*/
+/.beryl/
+/.tools/
+*.core
