@@ -1,4 +1,37 @@
-# Actual Phase 1 validation
+# Actual validation
+
+## Phase 2, Beryl 0.2.0 (2026-10-23)
+
+The same WSL/GCC 15.2.0/CMake 4.2.3/GnuCOBOL 3.2.0 environment and local compiler extraction described below were used. Phase 1 was committed as `74f9b74` before Phase 2 began. Commands were the same Debug, sanitizer and Release build/test commands below, with the expanded CMake suite. All builds used warnings as errors.
+
+| Configuration | Final actual result |
+| --- | --- |
+| Debug with GnuCOBOL | 8/8 CTest suites passed, 8.61 s |
+| Debug with ASan/UBSan and GnuCOBOL | 8/8 suites passed, no sanitizer findings, 5.77 s |
+| Release without cobc on PATH | All five C suites passed; all three COBOL suites explicitly SKIPPED, 2.78 s |
+
+The eight suites are `records`, `generation`, `reports`, `core`, `acceptance`, `cobol_acceptance`, `cobol_codec`, and `cobol_generation`.
+
+- Existing runner acceptance: all 27 C checks and three COBOL run/replay/boundary checks still pass.
+- Parser/codec: supported nested groups/offsets and 26 malformed or unsupported declaration examples; independent DISPLAY/COMP-3 vectors for odd/even digits, both signs, zero/negative zero, scales, and 38-digit precision; round trips and invalid digits/signs/padding/short buffers rejected.
+- Independent compiler vectors: a GnuCOBOL executable constructs three different 25-byte records using numeric literals; its bytes match the C encoder, and it accepts the encoded inputs.
+- Generation: 512 API records validate; two independent 100-record CLI corpora and their metadata are identical for the same seed; another seed changes later records. Directed zero/min/max/±smallest-unit/negative-zero values are checked. All 100 malformed records are rejected by the codec; text-only malformed cases are rejected by length. Seed/count limits, the 64 MiB budget, existing output directories and symlink parents are tested.
+- Generated data through COBOL: all 100 generated mixed DISPLAY/COMP-3 records pass GnuCOBOL NUMERIC checks and are echoed byte-for-byte, including negative zero.
+- Reporting: all seven classifications have tested JSON/XML escaping and correct JUnit failure/error/skipped mappings. Independently, PowerShell's JSON parser and .NET XML parser accepted seven result JSONs, seven JUnit documents, and a 100-record generation manifest. Preserved format-check artifacts are in ignored `.beryl/validation-ovMtlp/`. These parser checks are additional local validation, not runtime or CTest dependencies.
+
+Manual smoke commands also succeeded:
+
+```sh
+./build/beryl generate --copybook tests/cobol/account.cpy --count 100 --seed 12345 --out .beryl/phase2-corpus
+./build/beryl generate --copybook tests/cobol/account.cpy --count 100 --seed 12345 --out .beryl/phase2-malformed --malformed
+./build/beryl replay .beryl/smoke-pass/case-u2DxAt --results .beryl/phase2-replay
+```
+
+The first two commands report 100 valid/malformed records, respectively, with a 13-byte layout. Replay of the version 0.1 archive reports PASS and now emits version 0.2 JSON/JUnit reports. Generated corpora and replay evidence remain in the ignored `.beryl/` directories shown above. Raw CTest logs remain under each build's `Testing/Temporary/LastTest.log`. `/tmp` evidence can disappear when WSL shuts down.
+
+Scope: strict declaration parsing, exact codecs, seeded generation, malformed corpus mode, and reports are implemented. COPY preprocessing, fixed-format parsing, alternative sign conventions, fuzz campaigns, differential execution and minimization remain unsupported. The next incremental feature would be an explicit reference-executable oracle, followed by bounded fuzz campaigns. The resource limits remain process controls rather than a security sandbox. Remote GitHub Actions execution is not claimed.
+
+## Phase 1 baseline, Beryl 0.1.0
 
 Executed on 2026-10-23 UTC (2026-10-22 America/Denver), on Ubuntu x86-64 in WSL. Toolchain: GCC 15.2.0, CMake 4.2.3, GnuCOBOL 3.2.0. All compilation used C17 and `-Werror`, in addition to the warning flags in CMakeLists.txt.
 
@@ -71,4 +104,4 @@ exit=0 signal=0 duration_ms=26 stdout_truncated=0 stderr_truncated=0 output_trun
 
 The good run returned 0; the faulty run returned 1. Inspectable evidence remains under `.beryl/smoke-pass/case-u2DxAt` and `.beryl/smoke-fail/case-9MnjD9`; replay also passed. Archives contain the full target environment and are intentionally ignored by Git.
 
-Known limits: Linux only, one input/output pair, golden-byte comparisons only, no strong sandbox or total disk/process cap, and replay depends on an unchanged external runtime. Scope stops at Phase 1. The next smallest requested step would be a strict PIC X/PIC 9 DISPLAY parser with independently checked encoding vectors; no Phase 2 code has been started.
+At the Phase 1 checkpoint, limits were Linux only, one input/output pair, golden-byte comparisons only, no strong sandbox or total disk/process cap, and replay depending on an unchanged external runtime. No Phase 2 code had been started at that checkpoint; subsequent implementation and validation are recorded above.

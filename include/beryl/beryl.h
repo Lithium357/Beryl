@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
-#define BERYL_VERSION "0.1.0"
+#define BERYL_VERSION "0.2.0"
 #define B_PATH 4096
 #define B_ARGS 64
 #define B_ENV_LIMIT (1024U * 1024U)

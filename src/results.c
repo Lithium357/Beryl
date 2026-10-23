@@ -1,4 +1,5 @@
 #include "beryl/beryl.h"
+#include "beryl/report.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
@@ -42,6 +43,7 @@ int save_result(const Config *c,const Result *r,int archive) {
        (!r->missing_output && r->output.data && copy_to(archive,"output.bin",&r->output)<0)) {
         free(buf);return -1;
     }
+    if(save_reports(c,r,archive)<0){free(buf);return -1;}
     /* A manifest is the completion marker: never publish PASS before evidence is saved. */
     int rc=write_at(archive,"manifest.txt",buf,len);free(buf);return rc;
 }
