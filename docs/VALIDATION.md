@@ -1,5 +1,9 @@
 # Actual validation
 
+## Reference execution, Beryl 0.3.0 (2026-10-23)
+
+The Debug and ASan/UBSan builds each passed all nine CTest suites (7.71 s and 7.72 s). The new reference suite exercises twelve comparison scenarios plus replay: equality, changed bytes, status-only policy, exit differences, matching nonzero exits, ignored/selected streams, candidate crash, timeout, missing output, raw CRLF differences, and explicitly normalized CRLF. All prior runner, codec, generation and COBOL checks remain enabled. JUnit now maps REGRESSION_CANDIDATE to a failure; all eight classifications are checked. Coverage is explicitly unavailable unless a separately validated adapter collects it.
+
 ## Phase 2, Beryl 0.2.0 (2026-10-23)
 
 The same WSL/GCC 15.2.0/CMake 4.2.3/GnuCOBOL 3.2.0 environment and local compiler extraction described below were used. Phase 1 was committed as `74f9b74` before Phase 2 began. Commands were the same Debug, sanitizer and Release build/test commands below, with the expanded CMake suite. All builds used warnings as errors.

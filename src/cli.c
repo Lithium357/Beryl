@@ -13,6 +13,9 @@ static void help(void) {
          "  --input-name NAME       relative input name (INPUT.DAT)\n"
          "  --output-name NAME      required output name (OUTPUT.DAT)\n"
          "  --expected FILE         binary golden output; otherwise UNVERIFIED\n"
+         "  --reference PATH        compare with another executable in its own workspace\n"
+         "  --compare POLICY        output (default), status, or all (includes streams)\n"
+         "  --normalize-crlf 0|1    explicit CRLF-to-LF comparison policy (0)\n"
          "  --expected-exit N       expected exit status, 0..255 (0)\n"
          "  --arg VALUE             literal target argument; repeat up to 64 times\n"
          "  --results DIR           archive root (.beryl/results)\n"
@@ -41,7 +44,7 @@ int cli_main(int argc,char **argv) {
     if(argc==2 && !strcmp(argv[1],"--help")){help();return 0;}
     if(argc<2 || (strcmp(argv[1],"run") && strcmp(argv[1],"replay"))){fputs("error: choose run, replay or generate; see beryl --help\n",stderr);return 2;}
     if(argc==3 && !strcmp(argv[2],"--help")){help();return 0;}
-    Config c;config_defaults(&c);int rc=2,index=2;bool replay=!strcmp(argv[1],"replay"),override=false;
+    Config c;config_defaults(&c);int rc=2,index=2;bool replay=!strcmp(argv[1],"replay"),override=false,reference_override=false;
     char saved_hash[65]="";
     if(replay) {
         if(argc<3){fputs("error: replay needs a result directory; see beryl --help\n",stderr);goto done;}
@@ -52,10 +55,13 @@ int cli_main(int argc,char **argv) {
         if(!strcmp(flag,"--help")){help();rc=0;goto done;}
         if(i+1>=argc){fprintf(stderr,"error: %s requires a value; see beryl --help\n",flag);goto done;}
         const char *v=argv[++i];int bad=0;
-        if(replay && strcmp(flag,"--exec") && strcmp(flag,"--results")){fprintf(stderr,"error: replay does not accept %s; only --exec and --results may override saved settings\n",flag);goto done;}
+        if(replay && strcmp(flag,"--exec") && strcmp(flag,"--reference") && strcmp(flag,"--results")){fprintf(stderr,"error: replay does not accept %s; only --exec, --reference and --results may override saved settings\n",flag);goto done;}
         if(!strcmp(flag,"--exec")){bad=string_option(c.target,sizeof c.target,v);override=true;}
         else if(!strcmp(flag,"--input"))bad=string_option(c.input,sizeof c.input,v);
         else if(!strcmp(flag,"--expected")){bad=string_option(c.expected,sizeof c.expected,v);c.has_expected=true;}
+        else if(!strcmp(flag,"--reference")){bad=string_option(c.reference,sizeof c.reference,v);reference_override=true;}
+        else if(!strcmp(flag,"--compare")) { if(!strcmp(v,"output"))c.comparison=0;else if(!strcmp(v,"status"))c.comparison=1;else if(!strcmp(v,"all"))c.comparison=2;else bad=1; }
+        else if(!strcmp(flag,"--normalize-crlf")) { if(!strcmp(v,"0"))c.normalize_crlf=false;else if(!strcmp(v,"1"))c.normalize_crlf=true;else bad=1; }
         else if(!strcmp(flag,"--results"))bad=string_option(c.results,sizeof c.results,v);
         else if(!strcmp(flag,"--input-name"))bad=string_option(c.input_name,sizeof c.input_name,v);
         else if(!strcmp(flag,"--output-name"))bad=string_option(c.output_name,sizeof c.output_name,v);
@@ -83,6 +89,12 @@ int cli_main(int argc,char **argv) {
     char resolved[B_PATH];
     if(!realpath(c.target,resolved)){fprintf(stderr,"error: --exec %s: %s; provide an existing executable\n",c.target,strerror(errno));goto done;}
     strcpy(c.target,resolved);
+    if(c.has_expected && *c.reference){fputs("error: --expected and --reference are alternative oracles\n",stderr);goto done;}
+    if(*c.reference) {
+        if(!realpath(c.reference,resolved)){fprintf(stderr,"error: --reference %s: %s\n",c.reference,strerror(errno));goto done;}
+        strcpy(c.reference,resolved);
+        if(replay && !reference_override) { char hash[65];if(hash_file(c.reference,hash)<0 || strcmp(hash,c.replay_reference_hash)){fputs("error: replay reference digest changed; select --reference PATH deliberately\n",stderr);goto done;} }
+    } else if(c.comparison || c.normalize_crlf) { fputs("error: comparison policy requires --reference\n",stderr);goto done; }
     if(replay && !override) {
         char actual[65];if(hash_file(c.target,actual)<0 || strcmp(actual,saved_hash)){fputs("error: replay target digest changed; deliberately select --exec PATH to override\n",stderr);goto done;}
     }
@@ -91,7 +103,7 @@ int cli_main(int argc,char **argv) {
     if(*r.directory)printf("results: %s\n",r.directory);
     printf("exit=%d signal=%d duration_ms=%llu stdout_truncated=%d stderr_truncated=%d output_truncated=%d\n",r.exit_code,r.signal_number,(unsigned long long)r.duration_ms,r.out.truncated,r.err.truncated,r.output.truncated);
     rc=(r.outcome==PASS || r.outcome==UNVERIFIED)?0:(r.outcome==HARNESS_ERROR || r.outcome==EXEC_ERROR)?2:1;
-    bytes_free(&r.out);bytes_free(&r.err);bytes_free(&r.output);
+    result_free(&r);
 done:
     config_free(&c);return rc;
 }

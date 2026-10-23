@@ -39,6 +39,12 @@ int save_reports(const Config *c, const Result *r, int directory) {
     FILE *f = open_memstream(&buffer, &len); if (!f) return -1;
     fputs("{\n  \"schema\":\"beryl-result-1\",\n  \"version\":\"" BERYL_VERSION "\",\n  \"classification\":", f);
     json_string(f, outcome_name(r->outcome)); fputs(",\n  \"diagnostic\":", f); json_string(f, r->diagnostic);
+    fputs(",\n  \"reference\":", f);
+    if(r->reference) {
+        fputs("{\"path\":",f);json_string(f,c->reference);fputs(",\"directory\":",f);json_string(f,r->reference->directory);
+        fprintf(f,",\"sha256\":\"%s\",\"exit_code\":%d,\"signal\":%d}",r->reference->target_hash,r->reference->exit_code,r->reference->signal_number);
+    } else fputs("null",f);
+    fprintf(f,",\n  \"comparison\":\"%s\",\n  \"normalize_crlf\":%s,\n  \"differences\":%u,\n  \"coverage\":\"unavailable\"",c->comparison==1?"status":c->comparison==2?"all":"output",c->normalize_crlf?"true":"false",r->differences);
     fputs(",\n  \"target\":{\"path\":", f); json_string(f, c->target);
     fprintf(f, ",\"sha256\":\"%s\",\"compiler\":", r->target_hash); json_string(f, c->compiler); fputc('}', f);
     fputs(",\n  \"argv\":[", f); json_string(f, c->target);
@@ -62,7 +68,7 @@ int save_reports(const Config *c, const Result *r, int directory) {
     if (finish(f, &buffer, &len, directory, "result.json") < 0) return -1;
     buffer = NULL; len = 0; f = open_memstream(&buffer, &len); if (!f) return -1;
     bool error = r->outcome == HARNESS_ERROR || r->outcome == EXEC_ERROR;
-    bool failure = r->outcome == FAIL_ASSERTION || r->outcome == CRASH || r->outcome == TIMEOUT;
+    bool failure = r->outcome == FAIL_ASSERTION || r->outcome == CRASH || r->outcome == TIMEOUT || r->outcome == REGRESSION_CANDIDATE;
     fprintf(f, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<testsuites><testsuite name=\"beryl\" tests=\"1\" failures=\"%d\" errors=\"%d\" skipped=\"%d\" time=\"%" PRIu64 ".%03" PRIu64 "\"><testcase classname=\"beryl.batch\" name=\"",
             failure, error, r->outcome == UNVERIFIED, r->duration_ms / 1000, r->duration_ms % 1000);
     xml_text(f, c->target); fprintf(f, "\" time=\"%" PRIu64 ".%03" PRIu64 "\">", r->duration_ms / 1000, r->duration_ms % 1000);

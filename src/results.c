@@ -13,6 +13,10 @@ void config_defaults(Config *c) {
     c->timeout_ms=2000;c->cpu_seconds=2;c->max_input=1024U*1024U;c->max_capture=1024U*1024U;c->max_file=16U*1024U*1024U;
 }
 void config_free(Config *c) { for(size_t i=0;i<c->argc;i++)free(c->args[i]);bytes_free(&c->environment); }
+void result_free(Result *r) {
+    bytes_free(&r->out);bytes_free(&r->err);bytes_free(&r->output);
+    if(r->reference){result_free(r->reference);free(r->reference);r->reference=NULL;}
+}
 static int capture_environment(Config *c) {
     size_t len=0;for(size_t i=0;environ[i];i++){size_t n=strlen(environ[i])+1;if(n>B_ENV_LIMIT-len){errno=E2BIG;return -1;}len+=n;}
     c->environment.data=malloc(len+1);if(!c->environment.data)return -1;
@@ -27,6 +31,8 @@ int save_result(const Config *c,const Result *r,int archive) {
     char *buf=NULL;size_t len=0;FILE *f=open_memstream(&buf,&len);if(!f)return -1;
     fprintf(f,"format=beryl-1\nversion=%s\nclassification=%s\n",BERYL_VERSION,outcome_name(r->outcome));
     text_value(f,"target",c->target);text_value(f,"input_name",c->input_name);text_value(f,"output_name",c->output_name);text_value(f,"compiler",c->compiler);text_value(f,"diagnostic",r->diagnostic);
+    text_value(f,"reference",c->reference);
+    fprintf(f,"reference_sha256=%s\ncomparison=%u\nnormalize_crlf=%d\ndifferences=%u\n",r->reference?r->reference->target_hash:"",c->comparison,c->normalize_crlf,r->differences);
     fprintf(f,"target_sha256=%s\ninput_sha256=%s\nexpected_sha256=%s\noutput_sha256=%s\n",r->target_hash,r->input_hash,r->expected_hash,r->output_hash);
     char envhash[65];hash_bytes(c->environment.data,c->environment.len,envhash);fprintf(f,"environment_sha256=%s\n",envhash);
     fprintf(f,"has_expected=%d\nexpected_exit=%d\ntimeout_ms=%u\ncpu_seconds=%u\nmax_input=%zu\nmax_capture=%zu\nmax_file=%zu\n",c->has_expected,c->expected_exit,c->timeout_ms,c->cpu_seconds,c->max_input,c->max_capture,c->max_file);
@@ -65,13 +71,20 @@ int execute_case(Config *c,Result *r) {
     stage="copy --input-name";if(copy_to(work,c->input_name,&input)<0)goto fail;
     /* Create declared output parents before execution; do not pre-create the output file. */
     char leaf[B_PATH];int parent=open_parent(work,c->output_name,true,leaf);if(parent<0)goto fail;close(parent);
+    if(*c->reference) {
+        stage="execute reference";
+        Config reference=*c;strcpy(reference.target,c->reference);reference.reference[0]=0;reference.has_expected=false;
+        if(path_join(reference.input,r->directory,"input.bin")<0 || path_join(reference.results,r->directory,"reference")<0)goto fail;
+        r->reference=calloc(1,sizeof *r->reference);if(!r->reference)goto fail;
+        (void)execute_case(&reference,r->reference);
+    }
     stage="execute child";if(run_child(c,r,work)<0)goto fail;
     stage="capture --output-name (must be a regular file without symlinks)";
     if(read_at(work,c->output_name,c->max_capture,&r->output)<0) {
         if(errno==ENOENT)r->missing_output=true;
         else goto fail;
     } else hash_bytes(r->output.data,r->output.len,r->output_hash);
-    compare_result(c,r,&expected);
+    if(r->reference)compare_reference(c,r,r->reference);else compare_result(c,r,&expected);
     stage="save result evidence";if(save_result(c,r,archive)<0)goto fail;
     rc=0;goto done;
 fail:
@@ -111,6 +124,12 @@ int replay_load(const char *directory,Config *c,char saved_target_hash[65]) {
         else if(!strcmp(line,"input_name")){if(decode(v,c->input_name,sizeof c->input_name)<0)goto done;seen|=4;}
         else if(!strcmp(line,"output_name")){if(decode(v,c->output_name,sizeof c->output_name)<0)goto done;seen|=8;}
         else if(!strcmp(line,"compiler")){if(decode(v,c->compiler,sizeof c->compiler)<0)goto done;}
+        else if(!strcmp(line,"reference")){if(decode(v,c->reference,sizeof c->reference)<0)goto done;}
+        else if(!strcmp(line,"reference_sha256")){if(strlen(v)>64)goto done;strcpy(c->replay_reference_hash,v);}
+        else if(!strcmp(line,"comparison") || !strcmp(line,"normalize_crlf")) {
+            unsigned long long n;if(number(v,&n)<0 || n>(!strcmp(line,"comparison")?2U:1U))goto done;
+            if(!strcmp(line,"comparison"))c->comparison=(unsigned)n;else c->normalize_crlf=n!=0;
+        }
         else if(!strcmp(line,"target_sha256") || !strcmp(line,"input_sha256") || !strcmp(line,"expected_sha256") || !strcmp(line,"environment_sha256")) {
             if(strlen(v)>64)goto done;
             char *dest=!strcmp(line,"target_sha256")?saved_target_hash:!strcmp(line,"input_sha256")?ih:!strcmp(line,"expected_sha256")?eh:envh;strcpy(dest,v);
@@ -139,6 +158,7 @@ int replay_load(const char *directory,Config *c,char saved_target_hash[65]) {
     if(seen!=4095U || declared_args!=seen_args || !safe_name(c->input_name) || !safe_name(c->output_name) || !strcmp(c->input_name,c->output_name) || !c->timeout_ms || c->timeout_ms>600000U || !c->cpu_seconds || c->cpu_seconds>3600U || !c->max_input || !c->max_capture || !c->max_file || strlen(saved_target_hash)!=64)goto done;
     if(verify_at(dir,"input.bin",c->max_input,ih,&input)<0 || (c->has_expected && verify_at(dir,"expected.bin",c->max_capture,eh,&expected)<0) || verify_at(dir,"environment.bin",B_ENV_LIMIT,envh,&c->environment)<0)goto done;
     if(c->environment.len && c->environment.data[c->environment.len-1])goto done;
+    if(*c->reference && (strlen(c->replay_reference_hash)!=64 || c->has_expected))goto done;
     char resolved[B_PATH];if(!realpath(directory,resolved) || path_join(c->input,resolved,"input.bin")<0 || path_join(c->expected,resolved,"expected.bin")<0)goto done;
     rc=0;
 done:
