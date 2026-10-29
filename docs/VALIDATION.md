@@ -1,5 +1,9 @@
 # Actual validation
 
+## Callable-driver checkpoint (2026-10-28)
+
+Debug and ASan/UBSan builds passed all thirteen suites (8.01 s and 13.48 s). The new driver tests exercise explicit program/size selection, rejected identifiers/widths, exclusive output creation, compilation of the generated source with a real COBOL subprogram, correct transformations for two boundary inputs, preservation of the subprogram's nonzero return code, and extra-record refusal. The twelve prior local/COBOL behaviors remain enabled; no automatic linkage discovery or IBM compatibility is claimed.
+
 ## Minimization checkpoint (2026-10-28)
 
 Normal and ASan/UBSan builds passed all eleven suites (7.50 s and 11.36 s). The minimizer suite verifies an 11-to-1-byte reduction of a golden-output mismatch, valid fixed-length field simplification, strict signature preservation, try-limit reporting, exact original retention and refusal of altered archived oracle bytes. Baselines must match the archived outcome/category/status/output evidence and repeat before reduction. Each accepted simplification is independently confirmed. All previous runner, reference, campaign, codec and GnuCOBOL suites remain enabled.
