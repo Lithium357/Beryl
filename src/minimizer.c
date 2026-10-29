@@ -91,7 +91,7 @@ int minimize_cli(int argc,char **argv) {
     if(argc==3&&!strcmp(argv[2],"--help")){puts("Usage: beryl minimize RESULT-DIR --out NEW-DIR [--copybook FILE] [--byte-fallback]\n  --predicate classification|signature (classification), --max-tries N (200), --budget-ms N (30000)\n  --exec PATH / --reference PATH deliberately override archived executables. Original and reduced bytes are retained.");return 0;}
     if(argc<3){fputs("error: minimize needs a result directory; see beryl minimize --help\n",stderr);return 2;}
     Config c;config_defaults(&c);char expected_target[65]="",error[512]="";Outcome original=UNVERIFIED;int rc=2,dir=-1;bool target_override=false,ref_override=false,signature=false,byte_fallback=false;
-    const char *out=NULL,*copybook=NULL;uint64_t tries=200,budget=30000;Bytes input={0},source={0};Result baseline={0},archived={0};bool have_baseline=false;
+    const char *out=NULL,*copybook=NULL,*format="free";uint64_t tries=200,budget=30000;Bytes input={0},source={0};Result baseline={0},archived={0};bool have_baseline=false;
     char *json=NULL;size_t json_len=0;FILE *report=NULL;
     if(replay_load(argv[2],&c,expected_target)<0||saved_result(argv[2],c.max_capture,&archived,false)<0){strcpy(error,"invalid archived case or fixture digest");goto fail;}original=archived.outcome;
     if(original==PASS||original==UNVERIFIED||original==HARNESS_ERROR||original==EXEC_ERROR){strcpy(error,"minimize requires an archived assertion, regression candidate, crash or timeout");goto fail;}
@@ -99,6 +99,7 @@ int minimize_cli(int argc,char **argv) {
         const char *flag=argv[i];if(!strcmp(flag,"--byte-fallback")){byte_fallback=true;continue;}
         if(i+1==argc){snprintf(error,sizeof error,"%s needs a value",flag);goto fail;}const char *v=argv[++i];
         if(!strcmp(flag,"--out"))out=v;else if(!strcmp(flag,"--copybook"))copybook=v;
+        else if(!strcmp(flag,"--format"))format=v;
         else if(!strcmp(flag,"--predicate")){if(!strcmp(v,"signature"))signature=true;else if(strcmp(v,"classification")){strcpy(error,"--predicate requires classification or signature");goto fail;}}
         else if(!strcmp(flag,"--max-tries")){if(parse_u64(v,10000,&tries)<0||!tries){strcpy(error,"--max-tries must be 1..10000");goto fail;}}
         else if(!strcmp(flag,"--budget-ms")){if(parse_u64(v,3600000,&budget)<0||!budget){strcpy(error,"--budget-ms must be 1..3600000");goto fail;}}
@@ -112,7 +113,7 @@ int minimize_cli(int argc,char **argv) {
     if(read_bytes(c.input,c.max_input,&input)<0||input.truncated){strcpy(error,"cannot read original input");goto fail;}
     Layout layout;
     if(copybook){if(read_bytes(copybook,B_ENV_LIMIT,&source)<0||source.truncated){strcpy(error,"cannot read --copybook (regular source up to 1 MiB required)");goto fail;}
-        if(copybook_parse((char *)source.data,source.len,&layout,error)<0)goto fail;
+        if(copybook_parse_format((char *)source.data,source.len,format,&layout,error)<0)goto fail;
         if(record_validate(&layout,input.data,input.len,error)<0)goto fail;
         hash_bytes(source.data,source.len,actual);if(*c.layout_hash&&strcmp(actual,c.layout_hash)){strcpy(error,"--copybook digest differs from archived layout");goto fail;}}
     dir=new_directory(out);if(dir<0){snprintf(error,sizeof error,"--out must be new and writable: %s",strerror(errno));goto fail;}

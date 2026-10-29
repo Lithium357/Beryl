@@ -85,14 +85,14 @@ int new_directory(const char *path) {
     int e = errno; close(fd); errno = e; return dir;
 }
 static void generate_help(void) {
-    puts("Usage: beryl generate --copybook FILE --count N --seed N --out NEW-DIRECTORY [--malformed]\n"
-         "Free-format PIC X/9/S9/V DISPLAY and COMP-3 only; unsupported clauses are rejected.\n"
+    puts("Usage: beryl generate --copybook FILE --count N --seed N --out NEW-DIRECTORY [--malformed] [--format free|fixed]\n"
+         "Strict PIC X/9/S9/V DISPLAY and COMP-3; unsupported clauses are rejected.\n"
          "Count: 1..10000; seed: 0..18446744073709551615; corpus cap: 64 MiB.\n"
          "Default: valid records. --malformed deliberately corrupts storage or record length.\n"
          "The output directory must not already exist. generation.json is the completion marker.");
 }
 int generate_cli(int argc, char **argv) {
-    const char *copybook = NULL, *out = NULL; uint64_t count = 0, seed = 0; bool seeded = false, malformed = false;
+    const char *copybook = NULL, *out = NULL,*format="free"; uint64_t count = 0, seed = 0; bool seeded = false, malformed = false;
     for (int i = 2; i < argc; i++) {
         const char *flag = argv[i];
         if (!strcmp(flag, "--help")) { generate_help(); return 0; }
@@ -100,6 +100,7 @@ int generate_cli(int argc, char **argv) {
         if (i + 1 == argc) { fprintf(stderr, "error: %s requires a value; see beryl generate --help\n", flag); return 2; }
         const char *v = argv[++i];
         if (!strcmp(flag, "--copybook")) copybook = v;
+        else if(!strcmp(flag,"--format"))format=v;
         else if (!strcmp(flag, "--out")) out = v;
         else if (!strcmp(flag, "--count")) { if (parse_uint(v, 10000, &count) < 0 || !count) { fputs("error: --count must be 1..10000\n", stderr); return 2; } }
         else if (!strcmp(flag, "--seed")) { if (parse_uint(v, UINT64_MAX, &seed) < 0) { fputs("error: --seed must be an unsigned 64-bit integer\n", stderr); return 2; } seeded = true; }
@@ -108,7 +109,7 @@ int generate_cli(int argc, char **argv) {
     if (!copybook || !out || !count || !seeded) { fputs("error: generate requires --copybook, --count, --seed and --out; see beryl generate --help\n", stderr); return 2; }
     Bytes source = {0}; char error[512]; Layout layout;
     if (read_bytes(copybook, B_ENV_LIMIT, &source) < 0 || source.truncated) { fprintf(stderr, "error: --copybook %s: regular source file up to 1 MiB required\n", copybook); bytes_free(&source); return 2; }
-    if (copybook_parse((const char *)source.data, source.len, &layout, error) < 0) { fprintf(stderr, "error: --copybook %s: %s\n", copybook, error); bytes_free(&source); return 2; }
+    if (copybook_parse_format((const char *)source.data, source.len, format,&layout, error) < 0) { fprintf(stderr, "error: --copybook %s: %s\n", copybook, error); bytes_free(&source); return 2; }
     if ((layout.size + 1) * count > 64U * 1024U * 1024U) { fputs("error: --count and record size exceed 64 MiB corpus budget\n", stderr); bytes_free(&source); return 2; }
     int dir = new_directory(out);
     if (dir < 0) { fprintf(stderr, "error: --out %s: %s; choose a new directory without symlinks\n", out, strerror(errno)); bytes_free(&source); return 2; }
@@ -123,7 +124,8 @@ int generate_cli(int argc, char **argv) {
         fputs("{\"name\":", f); json_string(f, field->name);
         fprintf(f, ",\"offset\":%zu,\"bytes\":%zu,\"digits\":%u,\"scale\":%u,\"signed\":%s,\"storage\":\"%s\"}", field->offset, field->size, field->digits, field->scale, field->signed_value ? "true" : "false", field->storage == B_TEXT ? "TEXT" : field->storage == B_DISPLAY ? "DISPLAY" : "COMP-3");
     }
-    fputs("],\n\"records\":[\n", f); uint64_t state = seed;
+    fputs("],\n\"source_format\":",f);json_string(f,format);
+    fputs(",\n\"records\":[\n", f); uint64_t state = seed;
     for (size_t i = 0; i < (size_t)count; i++) {
         if (generate_record(&layout, i, &state, record, error) < 0) { fprintf(stderr, "error: generation: %s\n", error); goto done; }
         size_t len = layout.size; const char *mutation = "none";

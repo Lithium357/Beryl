@@ -2,6 +2,7 @@
 #include "beryl/generator.h"
 #include "beryl/campaign.h"
 #include "beryl/driver.h"
+#include "beryl/compiler_adapter.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,7 @@ static void help(void) {
          "       beryl fuzz --exec PATH --copybook FILE --runs N --seed N --results NEW-DIR\n"
          "       beryl minimize RESULT-DIR --out NEW-DIR [--copybook FILE]\n"
          "       beryl driver --program NAME --record-bytes N --out NEW-DIR\n"
+         "       beryl preprocess --copybook FILE --out NEW-DIR [--format free|fixed]\n"
          "       beryl --help | --version\n\n"
          "  --input-name NAME       relative input name (INPUT.DAT)\n"
          "  --output-name NAME      required output name (OUTPUT.DAT)\n"
@@ -44,6 +46,7 @@ static int parse_number(const char *s,unsigned long max,unsigned long *n) {
     errno=0;char *end;*n=strtoul(s,&end,10);return errno || *end || *n>max ? -1:0;
 }
 int cli_main(int argc,char **argv) {
+    if(argc>=2 && !strcmp(argv[1],"preprocess"))return preprocess_cli(argc,argv);
     if(argc>=2 && !strcmp(argv[1],"driver"))return driver_cli(argc,argv);
     if(argc>=2 && !strcmp(argv[1],"fuzz"))return fuzz_cli(argc,argv);
     if(argc>=2 && !strcmp(argv[1],"minimize"))return minimize_cli(argc,argv);

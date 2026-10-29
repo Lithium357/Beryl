@@ -190,3 +190,28 @@ int copybook_load(const char *path, Layout *layout, char error[512]) {
     int rc = copybook_parse((const char *)source.data, source.len, layout, error);
     bytes_free(&source); return rc;
 }
+int copybook_parse_format(const char *source,size_t len,const char *format,Layout *layout,char error[512]) {
+    if(!strcmp(format,"free"))return copybook_parse(source,len,layout,error);
+    memset(layout,0,sizeof *layout);
+    if(strcmp(format,"fixed")){strcpy(error,"--format must be free or fixed");return -1;}
+    if(len>B_ENV_LIMIT){strcpy(error,"copybook exceeds 1 MiB");return -1;}
+    char *normalized=malloc(len+1);if(!normalized){strcpy(error,"out of memory normalizing fixed-format copybook");return -1;}
+    size_t used=0;unsigned line=1;int rc=-1;
+    for(size_t at=0;at<len;line++) {
+        size_t end=at;while(end<len&&source[end]!='\n')end++;size_t width=end-at;if(width&&source[at+width-1]=='\r')width--;
+        bool blank=true;for(size_t i=0;i<width;i++){unsigned char c=(unsigned char)source[at+i];if(c!=' ')blank=false;if(c<32||c>=127){snprintf(error,512,"line %u: fixed format requires ASCII without tabs/control bytes",line);goto done;}}
+        if(!blank) {
+            if(width<7){snprintf(error,512,"line %u: fixed-format indicator column 7 is missing",line);goto done;}
+            for(size_t i=0;i<6;i++)if(source[at+i]!=' '&&(source[at+i]<'0'||source[at+i]>'9')){snprintf(error,512,"line %u: invalid sequence area in columns 1..6",line);goto done;}
+            char indicator=source[at+6];
+            if(indicator!='*'&&indicator!='/') {
+                if(indicator!=' '){snprintf(error,512,"line %u: unsupported fixed-format indicator '%c' (continuation/debug lines require compiler preprocessing)",line,indicator);goto done;}
+                size_t stop=width<72?width:72;
+                for(size_t i=7;i<stop;i++)normalized[used++]=source[at+i];
+            }
+        }
+        normalized[used++]='\n';at=end<len?end+1:end;
+    }
+    rc=copybook_parse(normalized,used,layout,error);
+done:free(normalized);return rc;
+}

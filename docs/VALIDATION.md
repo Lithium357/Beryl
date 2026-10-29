@@ -1,5 +1,9 @@
 # Actual validation
 
+## Fixed-format and preprocessing checkpoint (2026-10-28)
+
+All fifteen suites passed in Debug (8.65 s) and ASan/UBSan (14.66 s). New checks cover fixed sequence/indicator/text/identification columns, comments, CRLF, rejected continuation/debug/tab forms, fixed-source generation, actual free/fixed COPY expansion through GnuCOBOL and exclusive result directories. The compiler's expanded output was verified to be free-format in both cases and is parsed accordingly. Compiler diagnostics, executable/version provenance, argv and resolved digests are retained.
+
 ## Callable-driver checkpoint (2026-10-28)
 
 Debug and ASan/UBSan builds passed all thirteen suites (8.01 s and 13.48 s). The new driver tests exercise explicit program/size selection, rejected identifiers/widths, exclusive output creation, compilation of the generated source with a real COBOL subprogram, correct transformations for two boundary inputs, preservation of the subprogram's nonzero return code, and extra-record refusal. The twelve prior local/COBOL behaviors remain enabled; no automatic linkage discovery or IBM compatibility is claimed.

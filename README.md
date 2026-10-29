@@ -72,6 +72,8 @@ Seeded [fuzz campaigns](docs/FUZZING.md) support valid field mutation, intention
 
 [Callable programs](docs/CALLABLE.md) can use generated explicit single-record BY REFERENCE drivers, or a statically supplied custom driver. Program name and linkage size are declared by the user, and the subprogram's return status is preserved.
 
+[Copybook preprocessing](docs/PREPROCESSING.md) optionally resolves COPY through GnuCOBOL and records compiler provenance. Generation and record-aware commands also support explicit limited fixed-format input with `--format fixed`.
+
 The implemented scope includes the runner, strict record parsing/codecs, generation, JSON/JUnit reports, reference execution, bounded fuzz campaigns and minimization. Target execution still supports one input and one required output. Verified coverage and IBM/z/OS support are future work. See [compatibility](docs/COMPATIBILITY.md) and the [one-page COBOL primer](docs/COBOL_PRIMER.md). A difference indicates a contract mismatch; it does not prove the golden data represents correct business behavior.
 
 The repository's existing `LICENSE` has been preserved without selecting or replacing a license.

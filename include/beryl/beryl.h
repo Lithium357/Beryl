@@ -53,6 +53,7 @@ void result_free(Result *r);
 void compare_reference(const Config *c, Result *candidate, const Result *reference);
 void config_defaults(Config *c);
 void config_free(Config *c);
+int config_capture_environment(Config *c);
 int replay_load(const char *directory, Config *c, char saved_target_hash[65]);
 int cli_main(int argc, char **argv);
 #endif

@@ -17,4 +17,5 @@ typedef struct { Field fields[B_FIELDS]; size_t count, size; } Layout;
 /* Free-format declarations only. Errors include the source line and field. */
 int copybook_parse(const char *source, size_t len, Layout *layout, char error[512]);
 int copybook_load(const char *path, Layout *layout, char error[512]);
+int copybook_parse_format(const char *source,size_t len,const char *format,Layout *layout,char error[512]);
 #endif

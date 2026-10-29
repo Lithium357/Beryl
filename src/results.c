@@ -17,7 +17,7 @@ void result_free(Result *r) {
     bytes_free(&r->out);bytes_free(&r->err);bytes_free(&r->output);
     if(r->reference){result_free(r->reference);free(r->reference);r->reference=NULL;}
 }
-static int capture_environment(Config *c) {
+int config_capture_environment(Config *c) {
     size_t len=0;for(size_t i=0;environ[i];i++){size_t n=strlen(environ[i])+1;if(n>B_ENV_LIMIT-len){errno=E2BIG;return -1;}len+=n;}
     c->environment.data=malloc(len+1);if(!c->environment.data)return -1;
     for(size_t i=0;environ[i];i++){size_t n=strlen(environ[i])+1;memcpy(c->environment.data+c->environment.len,environ[i],n);c->environment.len+=n;}return 0;
@@ -66,7 +66,7 @@ int execute_case(Config *c,Result *r) {
     hash_bytes(input.data,input.len,r->input_hash);
     if(c->has_expected)hash_bytes(expected.data,expected.len,r->expected_hash);
     stage="hash --exec (provide a regular executable)";if(hash_file(c->target,r->target_hash)<0)goto fail;
-    stage="capture environment";if(!c->environment.data && capture_environment(c)<0)goto fail;
+    stage="capture environment";if(!c->environment.data && config_capture_environment(c)<0)goto fail;
     stage="create private --results workspace (avoid symlinks)";if(workspace_create(c,r,&archive,&work)<0)goto fail;
     stage="archive fixtures";
     if(copy_to(archive,"input.bin",&input)<0 || copy_to(archive,"environment.bin",&c->environment)<0 || (c->has_expected && copy_to(archive,"expected.bin",&expected)<0))goto fail;
