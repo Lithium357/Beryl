@@ -1,5 +1,9 @@
 # Actual validation
 
+## Minimization checkpoint (2026-10-28)
+
+Normal and ASan/UBSan builds passed all eleven suites (7.50 s and 11.36 s). The minimizer suite verifies an 11-to-1-byte reduction of a golden-output mismatch, valid fixed-length field simplification, strict signature preservation, try-limit reporting, exact original retention and refusal of altered archived oracle bytes. Baselines must match the archived outcome/category/status/output evidence and repeat before reduction. Each accepted simplification is independently confirmed. All previous runner, reference, campaign, codec and GnuCOBOL suites remain enabled.
+
 ## Seeded campaigns, Beryl 0.4.0 (2026-10-23)
 
 Debug and ASan/UBSan builds passed all ten CTest suites (13.09 s and 9.54 s). The campaign suite checks 100 valid/invalid mutation pairs, deterministic raw input sequences across independent campaigns, confirmed reference differences and grouping, no-oracle UNVERIFIED outcomes, different-signal/assertion-category predicate rejection, and artifact-budget exhaustion with an honest zero completed count. Existing nine suites remain enabled. Raw testcase provenance is retained in replay manifests/JSON; changing seeds and mutation policy never rewrites an archived case.

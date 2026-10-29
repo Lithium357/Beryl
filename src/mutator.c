@@ -55,11 +55,13 @@ void failure_signature(const Result *r,char hash[65]) {
     char out[65],err[65],stream[65],ref[65]="",refstream[65]="",referr[65]="";hash_bytes(r->output.data,r->output.len,out);hash_bytes(r->err.data,r->err.len,err);hash_bytes(r->out.data,r->out.len,stream);
     if(r->reference)hash_bytes(r->reference->output.data,r->reference->output.len,ref);
     if(r->reference){hash_bytes(r->reference->out.data,r->reference->out.len,refstream);hash_bytes(r->reference->err.data,r->reference->err.len,referr);}
-    char buffer[1024];int n=snprintf(buffer,sizeof buffer,"%d:%d:%d:%u:%u:%d:%d:%d:%s:%s:%s:%s:%s:%s",r->outcome,r->exit_code,r->signal_number,r->differences,assertion_kind(r),r->missing_output,r->output.truncated,r->err.truncated,out,err,ref,stream,refstream,referr);
+    char buffer[1024];int n=snprintf(buffer,sizeof buffer,"%d:%d:%d:%u:%u:%d:%d:%d:%d:%d:%s:%s:%s:%s:%s:%s",r->outcome,r->exit_code,r->signal_number,r->differences,assertion_kind(r),r->missing_output,r->output.truncated,r->err.truncated,r->reference?r->reference->exit_code:-1,r->reference?r->reference->signal_number:0,out,err,ref,stream,refstream,referr);
     hash_bytes(buffer,(size_t)n,hash);
 }
 bool failure_equivalent(const Result *a,const Result *b,bool signature) {
     if(a->outcome!=b->outcome||a->signal_number!=b->signal_number||a->differences!=b->differences||assertion_kind(a)!=assertion_kind(b))return false;
+    if(!!a->reference!=!!b->reference)return false;
+    if(a->reference&&(a->reference->signal_number!=b->reference->signal_number||((a->differences&1)&&(a->exit_code!=b->exit_code||a->reference->exit_code!=b->reference->exit_code))))return false;
     if(a->outcome==FAIL_ASSERTION&&assertion_kind(a)==1&&a->exit_code!=b->exit_code)return false;
     if(signature){char x[65],y[65];failure_signature(a,x);failure_signature(b,y);return !strcmp(x,y);}
     return true;
