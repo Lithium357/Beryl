@@ -21,9 +21,21 @@ All decimal operations use strings/digit arrays with explicit scale; no floating
 | PIC X | Raw bytes, one byte per character position; string encoding right-pads with ASCII spaces |
 | Unsigned DISPLAY | One ASCII digit byte per digit; no stored dot or sign |
 | Signed DISPLAY | Default GnuCOBOL ASCII trailing embedded sign: positive final digit `0`..`9`, negative final digit `p`..`y` |
-| COMP-3 | `floor((digits + 2) / 2)` bytes; zero leading pad nibble for even digit counts; sign C positive/D negative for signed, F for unsigned |
+| COMP-3 | `floor((digits + 2) / 2)` bytes; zero leading pad nibble for even digit counts; sign C positive/D negative for signed, F by default or explicitly C for unsigned |
 
-The decoder deliberately accepts canonical C/D/F packed signs only, not other sign-nibble variants a runtime might tolerate. Alternate overpunch conventions are unsupported. These assumptions are verified against GnuCOBOL 3.2.0's default configuration and must not be generalized to IBM or differently configured compilers. Text raw bytes, including NULs, remain valid; the text-string encoder takes a C string, while raw record APIs retain explicit lengths.
+The decoder accepts C/D for signed packed fields and C/F for unsigned packed fields. It rejects negative D in an unsigned field and other sign-nibble variants a runtime might tolerate. Alternate DISPLAY overpunch conventions are unsupported. Text raw bytes, including NULs, remain valid; the text-string encoder takes a C string, while raw record APIs retain explicit lengths.
+
+`generate`, `fuzz` and structured `minimize` accept `--unsigned-packed-sign f|c`.
+The default `f` preserves earlier GnuCOBOL-oriented output. Select `c` for the
+tested IBM COBOL for Linux 1.2.0.9 configuration: its independent numeric fixture
+emits C for unsigned packed fields. The option controls newly encoded unsigned
+packed values; signed packed values and DISPLAY/text bytes are unchanged. A
+campaign with an existing seed retains unmutated seed fields byte-for-byte.
+Generation, campaign and minimization JSON record the selected setting. The C
+API exposes `layout_set_unsigned_packed_sign` and `Field.unsigned_packed_c`.
+
+Exact storage-vector tests cover the compiler configurations in
+COMPILER_MATRIX.md. IBM Linux results do not establish EBCDIC or z/OS support.
 
 Examples: `PIC 9(3)V9(2)` value 1.20 stores ASCII `00120`. Signed DISPLAY value -12.34 with `S9(3)V9(2)` stores ASCII `0123t`. Packed `S9(3)` -123 is hex `12 3d`; packed `S9(4)` +1234 is `01 23 4c`; unsigned `9(4)` 1234 is `01 23 4f`. Tests cover these independently specified vectors, 38-digit precision, invalid digits/signs/padding, buffers, zeros, and codec round trips.
 
@@ -31,6 +43,7 @@ Examples: `PIC 9(3)V9(2)` value 1.20 stores ASCII `00120`. Signed DISPLAY value 
 
 Seed is required and accepts the entire uint64 range, including zero. The PRNG is versioned `splitmix64-v1`, using fixed unsigned 64-bit arithmetic. The same version, source, count, seed and mode produce identical raw files and generation metadata. Output paths and timestamps are excluded from that metadata. This deterministic test-data PRNG is not for cryptographic use.
 
+The same unsigned packed-sign setting is also required for identical output.
 The first six records use directed patterns for every field:
 
 | Index | Numeric pattern | Text pattern |

@@ -156,4 +156,56 @@ limit before `main` runs.
 
 The existing GitHub Actions workflow now enables the GnuCOBOL dialect matrix.
 The full multi-compiler results above were obtained locally; no remote CI run
-is asserted here. Optional proprietary compiler results remain pending.
+is asserted here. This checkpoint predates the IBM Linux integration below.
+
+## IBM COBOL for Linux evaluation
+
+The user-supplied official **IBM COBOL for Linux 1.2.0.9** evaluation is installed
+at `/opt/ibm/cobol/1.2.0`, with its matching runtime under `/opt/ibm/cobol/rte`.
+The earlier apparent expiration was resolved by completing normal package
+installation, including the evaluation package's initialization utility; see
+VENDOR_ACCESS.md.
+
+Enable the optional profile after installing a legitimately licensed compiler:
+
+```sh
+cmake -S . -B build-matrix -DBERYL_COMPILER_MATRIX=ON \
+  -DBERYL_IBM_COBOL_EXECUTABLE=/opt/ibm/cobol/1.2.0/bin/cob2 \
+  -DBERYL_IBM_SCU_EXECUTABLE=/opt/ibm/cobol/1.2.0/bin/scu
+cmake --build build-matrix --parallel
+ctest --test-dir build-matrix -L ibm_linux --output-on-failure
+```
+
+The adapter copies/formats each free-format source using IBM's own
+`scu -f -N -E` and captures its formatted stdout. Initial-formatting mode `-N`
+avoids scu's statement/semantic conversion passes. `cob2 -q64
+-qsrcformat(extend)` compiles the formatted copies, including generated-driver
+lines longer than 72 columns. Originals remain unchanged. The driver stores its
+internal return status in `PIC S9(9) COMP-5`; IBM rejects the prior BINARY-LONG
+spelling. The independent vector fixture uses a simple DISPLAY loop counter,
+which does not alter the tested record layout.
+
+The runtime profile defaults to `BERYL_MATRIX_ibm_linux_ENVIRONMENT=COBRTOPT=FS=QSAM`.
+IBM's [QSAM fixed-length file format](https://www.ibm.com/docs/en/cobol-linux-x86/1.2?topic=systems-qsam-file-system)
+has no metadata, matching these raw fixed-record fixtures. Its default STL
+selection rejected the raw input file with status 37. This is explicit runtime
+configuration, not automatic file-format detection or support for QSAM variable
+records/RDWs.
+
+The exact unsigned packed-decimal vector test selects **C** sign nibbles to
+match IBM's emitted bytes. Beryl's new `--unsigned-packed-sign c` option provides
+that representation for generated/mutated/simplified records. Default unsigned
+output remains F; the decoder accepts C/F for unsigned values and still rejects
+negative signs in unsigned fields. See RECORD_LAYOUTS.md.
+
+This validates Linux x86 fixture behavior only. IBM Enterprise COBOL on z/OS,
+EBCDIC, mainframe data-set allocation and platform process control remain
+unvalidated. This WSL host is also outside the specific Ubuntu releases listed
+on IBM's product page; results do not establish vendor-certified host support.
+
+Final local results on 2026-10-29: **48/48 suites passed without skips** in the
+C17 Debug `-Werror` build (34.66 s), and **48/48 passed without skips** with
+ASan/UBSan and `-Werror` (53.17 s), with no sanitizer findings. These counts
+include all 44 earlier suites plus IBM's four actual-compiler suites. The
+sanitizers instrument Beryl and its C assertion programs, not IBM's proprietary
+compiler/runtime or the other external runtimes. Remote CI is not asserted.

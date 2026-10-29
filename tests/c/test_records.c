@@ -58,6 +58,16 @@ static void unit(void) {
     vector("S9(3) COMP-3", "-123", odd, sizeof odd, "-123");
     vector("S9(4) COMP-3", "+1234", even, sizeof even, "1234");
     vector("9(4) COMP-3", "1234", unsigned_even, sizeof unsigned_even, "1234");
+    Layout ibm;const char *unsigned_schema="01 r. 05 f pic 9(4) comp-3.";
+    assert(!copybook_parse(unsigned_schema,strlen(unsigned_schema),&ibm,error));
+    assert(!layout_set_unsigned_packed_sign(&ibm,"c",error));
+    unsigned char ibm_bytes[3];char ibm_text[80];
+    assert(!field_encode(&ibm.fields[0],"1234",ibm_bytes,error));assert(!memcmp(ibm_bytes,even,3));
+    assert(!field_decode(&ibm.fields[0],even,ibm_text,sizeof ibm_text,error));assert(!strcmp(ibm_text,"1234"));
+    assert(!field_decode(&ibm.fields[0],unsigned_even,ibm_text,sizeof ibm_text,error));
+    assert(layout_set_unsigned_packed_sign(&ibm,"d",error)<0&&ibm.fields[0].unsigned_packed_c);
+    ibm_bytes[2]=0x4d;assert(field_decode(&ibm.fields[0],ibm_bytes,ibm_text,sizeof ibm_text,error)<0);
+    assert(!layout_set_unsigned_packed_sign(&ibm,"f",error));assert(!field_encode(&ibm.fields[0],"1234",ibm_bytes,error));assert(!memcmp(ibm_bytes,unsigned_even,3));
     unsigned char fractional[] = {0x00, 0x12, 0x3d}, zero[] = {0x00, 0x0c}, negzero[] = {0x00, 0x0d};
     vector("S9(3)V9(2) COMP-3", "-1.23", fractional, sizeof fractional, "-1.23");
     vector("S9(3) COMP-3", "0", zero, sizeof zero, "0");
@@ -88,10 +98,11 @@ static void unit(void) {
     assert(field_decode(&layout.fields[1], (const unsigned char *)"999", text, 1, error) < 0);
     puts("records: parser rejection cases, layout offsets, exact decimal vectors, signs/zeros/scales, round trips and invalid storage passed");
 }
-static void cobol(const char *cli, const char *fixture) {
+static void cobol(const char *cli, const char *fixture,const char *packed_sign) {
     char dir[] = "/tmp/beryl-codec-XXXXXX"; assert(mkdtemp(dir));
     char input[B_PATH], results[B_PATH], error[512]; assert(!path_join(input, dir, "vectors.bin")); assert(!path_join(results, dir, "results"));
     Layout layout; assert(!copybook_parse(schema, strlen(schema), &layout, error));
+    assert(!layout_set_unsigned_packed_sign(&layout,packed_sign,error));
     FILE *f = fopen(input, "wb"); assert(f); unsigned char record[25];
     for (size_t row = 0; row < 3; row++) {
         for (size_t i = 0; i < layout.count; i++) assert(!field_encode(&layout.fields[i], values[row][i], record + layout.fields[i].offset, error));
@@ -105,7 +116,7 @@ static void cobol(const char *cli, const char *fixture) {
     puts("COBOL: three independent 25-byte storage vectors agree with C encoder, including signed DISPLAY and odd/even packed digits");
 }
 int main(int argc, char **argv) {
-    if (argc == 4 && !strcmp(argv[1], "--cobol")) cobol(argv[2], argv[3]);
+    if ((argc == 4 || argc == 5) && !strcmp(argv[1], "--cobol")) cobol(argv[2], argv[3],argc==5?argv[4]:"f");
     else { assert(argc == 1); unit(); }
     return 0;
 }

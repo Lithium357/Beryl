@@ -18,14 +18,15 @@ static size_t evidence_bytes(const Result *r) {
 }
 static bool failing(Outcome o) {return o!=PASS&&o!=UNVERIFIED;}
 int fuzz_cli(int argc,char **argv) {
-    Config c;config_defaults(&c);const char *copybook=NULL,*mode="valid",*format="free";uint64_t runs=0,budget=60000,byte_limit=64U*1024U*1024U;bool seeded=false;
+    Config c;config_defaults(&c);const char *copybook=NULL,*mode="valid",*format="free",*packed_sign="f";uint64_t runs=0,budget=60000,byte_limit=64U*1024U*1024U;bool seeded=false;
     int rc=2,dir=-1;Bytes source={0},seed={0},expected={0};Layout layout;Layout *schema=NULL;char error[512]="";
     char *summary=NULL;size_t summary_len=0;FILE *f=NULL;Group *groups=NULL;
     for(int i=2;i<argc;i++) {
-        const char *flag=argv[i];if(!strcmp(flag,"--help")){puts("Usage: beryl fuzz --exec PATH [--reference PATH|--expected FILE] --copybook FILE --runs N --seed N --results NEW-DIR\n  --mode valid|invalid|raw; raw requires --input FILE; optional --input seeds field mutation\n  --budget-ms N (60000), --max-total-bytes N (67108864), standard run limits/arguments\n  Runs: 1..10000. Every failing case is rerun before reproducible signature grouping.");rc=0;goto done;}
+        const char *flag=argv[i];if(!strcmp(flag,"--help")){puts("Usage: beryl fuzz --exec PATH [--reference PATH|--expected FILE] --copybook FILE --runs N --seed N --results NEW-DIR\n  --mode valid|invalid|raw; raw requires --input FILE; optional --input seeds field mutation\n  --budget-ms N (60000), --max-total-bytes N (67108864), standard run limits/arguments\n  --unsigned-packed-sign f|c selects generated unsigned COMP-3 signs (default f).\n  Runs: 1..10000. Every failing case is rerun before reproducible signature grouping.");rc=0;goto done;}
         if(i+1==argc){snprintf(error,sizeof error,"%s requires a value",flag);goto fail;}const char *v=argv[++i];
         if(!strcmp(flag,"--copybook"))copybook=v;
         else if(!strcmp(flag,"--format"))format=v;
+        else if(!strcmp(flag,"--unsigned-packed-sign"))packed_sign=v;
         else if(!strcmp(flag,"--mode"))mode=v;
         else if(!strcmp(flag,"--runs")){if(parse_u64(v,10000,&runs)<0||!runs){strcpy(error,"--runs must be 1..10000");goto fail;}}
         else if(!strcmp(flag,"--seed")){if(parse_u64(v,UINT64_MAX,&c.seed)<0){strcpy(error,"--seed requires uint64");goto fail;}seeded=true;}
@@ -34,10 +35,12 @@ int fuzz_cli(int argc,char **argv) {
         else if(config_option(&c,flag,v)<0){snprintf(error,sizeof error,"invalid or unknown flag/value: %s",flag);goto fail;}
     }
     if(!runs||!seeded){strcpy(error,"fuzz requires --runs and --seed");goto fail;}
+    if(layout_set_unsigned_packed_sign(NULL,packed_sign,error)<0)goto fail;
     if(strcmp(mode,"valid")&&strcmp(mode,"invalid")&&strcmp(mode,"raw")){strcpy(error,"--mode must be valid, invalid or raw");goto fail;}
     if(config_resolve(&c,error)<0)goto fail;
     if(copybook){if(read_bytes(copybook,B_ENV_LIMIT,&source)<0||source.truncated){strcpy(error,"cannot read --copybook (maximum 1 MiB)");goto fail;}if(copybook_parse_format((char *)source.data,source.len,format,&layout,error)<0)goto fail;schema=&layout;hash_bytes(source.data,source.len,c.layout_hash);}
     if(!schema&&strcmp(mode,"raw")){strcpy(error,"--copybook is required for valid/invalid mutation");goto fail;}
+    if(schema&&layout_set_unsigned_packed_sign(&layout,packed_sign,error)<0)goto fail;
     if(*c.input){if(read_bytes(c.input,c.max_input,&seed)<0||seed.truncated){strcpy(error,"cannot read bounded --input seed");goto fail;}}
     if(c.has_expected&&(read_bytes(c.expected,c.max_capture,&expected)<0||expected.truncated)){strcpy(error,"cannot read bounded --expected");goto fail;}
     if(!strcmp(mode,"raw")&&!seed.data){strcpy(error,"raw mutation requires --input FILE");goto fail;}
@@ -56,7 +59,7 @@ int fuzz_cli(int argc,char **argv) {
     }
     groups=calloc((size_t)runs,sizeof *groups);f=open_memstream(&summary,&summary_len);if(!groups||!f){strcpy(error,"out of memory starting campaign");goto fail;}
     c.seeded=true;uint64_t state=c.seed,start=monotonic_ms();size_t completed=0,group_count=0,flaky=0,unconfirmed=0,failures=0,total=source.len+seed.len+expected.len+extra_snapshot;const char *stop="complete";
-    fprintf(f,"{\"schema\":\"beryl-campaign-1\",\"version\":\"" BERYL_VERSION "\",\"seed\":\"%" PRIu64 "\",\"prng\":\"splitmix64-v1\",\"mode\":",c.seed);json_string(f,mode);fputs(",\"source_format\":",f);json_string(f,format);fprintf(f,",\"requested_runs\":%" PRIu64 ",\"budget_ms\":%" PRIu64 ",\"max_total_bytes\":%" PRIu64 ",\"cases\":[\n",runs,budget,byte_limit);
+    fprintf(f,"{\"schema\":\"beryl-campaign-1\",\"version\":\"" BERYL_VERSION "\",\"seed\":\"%" PRIu64 "\",\"prng\":\"splitmix64-v1\",\"mode\":",c.seed);json_string(f,mode);fputs(",\"source_format\":",f);json_string(f,format);fputs(",\"unsigned_packed_sign\":",f);json_string(f,packed_sign);fprintf(f,",\"requested_runs\":%" PRIu64 ",\"budget_ms\":%" PRIu64 ",\"max_total_bytes\":%" PRIu64 ",\"cases\":[\n",runs,budget,byte_limit);
     for(size_t i=0;i<(size_t)runs;i++) {
         uint64_t elapsed=monotonic_ms()-start;if(elapsed>=budget){stop="time-budget";break;}if(total>=byte_limit){stop="artifact-budget";break;}
         Bytes record={0};if(mutate_record(schema,&seed,mode,i,&state,&record,c.mutation,error)<0)goto fail;

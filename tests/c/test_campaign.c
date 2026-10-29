@@ -28,5 +28,11 @@ int main(int argc,char **argv) {
     char manifest[B_PATH];assert(!path_join(manifest,one,"campaign.json"));char *json=load(manifest);assert(strstr(json,"\"completed_runs\":8")&&strstr(json,"REGRESSION_CANDIDATE")&&strstr(json,"\"reproducible\":true"));free(json);
     char valid[B_PATH];assert(!path_join(valid,base,"valid"));char *observe[]={cli,"fuzz","--exec",argv[2],"--copybook",cpy,"--runs","6","--seed","0","--results",valid,NULL};assert(!invoke(cli,observe));assert(!path_join(manifest,valid,"campaign.json"));json=load(manifest);assert(strstr(json,"UNVERIFIED")&&!strstr(json,"\"classification\":\"PASS\""));free(json);
     char bounded[B_PATH];assert(!path_join(bounded,base,"bounded"));args[15]=bounded;args[16]="--max-total-bytes";char *bounded_args[20];for(size_t i=0;i<17;i++)bounded_args[i]=args[i];bounded_args[17]="7";bounded_args[18]=NULL;assert(invoke(cli,bounded_args)==2);assert(!path_join(manifest,bounded,"campaign.json"));json=load(manifest);assert(strstr(json,"artifact-budget")&&strstr(json,"\"completed_runs\":0"));free(json);
+    char packed[B_PATH];assert(!path_join(packed,base,"packed-c"));put(cpy,"01 r. 05 u pic 9(4) comp-3.");
+    char *packed_args[]={cli,"fuzz","--exec",argv[2],"--copybook",cpy,"--runs","6","--seed","0","--results",packed,"--unsigned-packed-sign","c",NULL};
+    assert(!invoke(cli,packed_args));
+    for(size_t i=0;i<6;i++){char name[64],path[B_PATH];snprintf(name,sizeof name,"run-%06zu/input.bin",i);assert(!path_join(path,packed,name));Bytes bytes={0};assert(!read_bytes(path,100,&bytes));assert(bytes.len==3&&(bytes.data[2]&15U)==12U);bytes_free(&bytes);}
+    assert(!path_join(manifest,packed,"campaign.json"));json=load(manifest);assert(strstr(json,"\"unsigned_packed_sign\":\"c\""));free(json);
+    packed_args[13]="d";assert(invoke(cli,packed_args)==2);
     printf("campaign: deterministic mutation, valid/invalid storage, differential failures, reproduction, grouping, unverified observations and artifact budget passed\nevidence: %s\n",base);return 0;
 }

@@ -11,6 +11,14 @@ static bool valid(const Field *f) {
         f->digits > 0 && f->digits <= B_DIGITS && f->scale < f->digits &&
         f->size == (f->storage == B_PACKED ? (f->digits + 2U) / 2U : f->digits);
 }
+int layout_set_unsigned_packed_sign(Layout *layout,const char *sign,char error[512]) {
+    if(strcmp(sign,"c")&&strcmp(sign,"f")){strcpy(error,"--unsigned-packed-sign must be c or f");return -1;}
+    if(layout){
+        if(layout->count>B_FIELDS){strcpy(error,"invalid field count");return -1;}
+        for(size_t i=0;i<layout->count;i++)layout->fields[i].unsigned_packed_c=!strcmp(sign,"c");
+    }
+    return 0;
+}
 static int digits(const Field *f, const char *value, unsigned char out[B_DIGITS], bool *negative) {
     const char *p = value; *negative = false;
     if (*p == '-' || *p == '+') { *negative = *p == '-'; p++; }
@@ -54,7 +62,7 @@ int field_encode(const Field *f, const char *value, unsigned char *out, char err
             size_t nibble = i + pad;
             out[nibble / 2] |= (unsigned char)(d[i] << (nibble % 2 ? 0 : 4));
         }
-        out[f->size - 1] |= (unsigned char)(f->signed_value ? (negative ? 0xd : 0xc) : 0xf);
+        out[f->size - 1] |= (unsigned char)(f->signed_value ? (negative ? 0xd : 0xc) : f->unsigned_packed_c ? 0xc : 0xf);
     }
     return 0;
 }
@@ -74,8 +82,8 @@ int field_decode(const Field *f, const unsigned char *data, char *value, size_t 
         }
     } else {
         unsigned sign = data[f->size - 1] & 15U;
-        if (f->signed_value ? (sign != 0xc && sign != 0xd) : sign != 0xf)
-            return bad(f, error, "unsupported COMP-3 sign nibble (canonical C/D signed or F unsigned required)");
+        if (f->signed_value ? (sign != 0xc && sign != 0xd) : (sign != 0xf && sign != 0xc))
+            return bad(f, error, "unsupported COMP-3 sign nibble (canonical C/D signed or C/F unsigned required)");
         negative = sign == 0xd;
         size_t pad = f->size * 2 - f->digits - 1;
         if (pad && (data[0] >> 4)) return bad(f, error, "nonzero COMP-3 padding nibble");

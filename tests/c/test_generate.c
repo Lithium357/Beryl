@@ -65,6 +65,18 @@ int main(int argc, char **argv) {
     f = fopen(budget_source, "wb"); assert(f); assert(fputs("01 r.\n", f) >= 0);
     for (size_t i = 0; i < 64; i++) assert(fputs("05 FILLER PIC X(1024).\n", f) >= 0);
     assert(!fclose(f)); args[3] = budget_source; args[5] = "1025"; args[9] = budget_out; args[10] = NULL; assert(invoke(args) == 2); assert(access(budget_out, F_OK) < 0 && errno == ENOENT);
+    char packed_source[B_PATH],packed_c[B_PATH],packed_f[B_PATH];
+    assert(!path_join(packed_source,base,"packed.cpy"));assert(!path_join(packed_c,base,"packed-c"));assert(!path_join(packed_f,base,"packed-f"));
+    f=fopen(packed_source,"wb");assert(f);assert(fputs("01 r. 05 u pic 9(4) comp-3. 05 s pic s9(3) comp-3.",f)>=0);assert(!fclose(f));
+    char *packed_args[]={cli,"generate","--copybook",packed_source,"--count","6","--seed","0","--out",packed_c,"--unsigned-packed-sign","c",NULL};
+    assert(!invoke(packed_args));packed_args[9]=packed_f;packed_args[11]="f";assert(!invoke(packed_args));
+    for(size_t i=0;i<6;i++){
+        char name[32];snprintf(name,sizeof name,"case-%06zu.bin",i);bytes(packed_c,name,&a);bytes(packed_f,name,&b);
+        assert(a.len==5&&b.len==5);assert((a.data[2]&15U)==12U&&(b.data[2]&15U)==15U);
+        a.data[2]=(unsigned char)((a.data[2]&0xf0U)|15U);assert(!memcmp(a.data,b.data,5));bytes_free(&a);bytes_free(&b);
+    }
+    bytes(packed_c,"generation.json",&a);a.data[a.len]=0;assert(strstr((char *)a.data,"\"unsigned_packed_sign\":\"c\""));bytes_free(&a);
+    packed_args[11]="d";assert(invoke(packed_args)==2);
     if (argc == 3) {
         char input[B_PATH], results[B_PATH]; assert(!path_join(input, base, "combined.bin")); assert(!path_join(results, base, "cobol-results"));
         FILE *combined = fopen(input, "wb"); assert(combined);

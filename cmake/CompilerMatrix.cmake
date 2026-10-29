@@ -9,6 +9,9 @@ set(BERYL_COBOL4J_EXECUTABLE "" CACHE FILEPATH "opensource COBOL 4J compiler (co
 set(BERYL_JAVA_EXECUTABLE "" CACHE FILEPATH "Java runtime for COBOL 4J")
 set(BERYL_COBOL4J_RUNTIME "" CACHE FILEPATH "COBOL 4J libcobj.jar runtime")
 set(BERYL_MATRIX_cobol4j_ENVIRONMENT "" CACHE STRING "Environment assignments for the COBOL 4J compiler")
+set(BERYL_IBM_COBOL_EXECUTABLE "" CACHE FILEPATH "Licensed IBM COBOL for Linux compiler (cob2)")
+set(BERYL_IBM_SCU_EXECUTABLE "" CACHE FILEPATH "IBM COBOL source conversion utility (scu)")
+set(BERYL_MATRIX_ibm_linux_ENVIRONMENT "COBRTOPT=FS=QSAM" CACHE STRING "Environment for IBM Linux fixed raw-record fixtures")
 
 function(beryl_native_profile name compiler)
   if(NOT EXISTS "${compiler}")
@@ -111,5 +114,35 @@ if(BERYL_COMPILER_MATRIX)
       -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/JavaDriverTest.cmake")
     set_tests_properties(matrix_cobol4j_acceptance matrix_cobol4j_codec matrix_cobol4j_generation
       matrix_cobol4j_driver PROPERTIES TIMEOUT 90 LABELS "compiler-matrix;cobol4j")
+  endif()
+  if(BERYL_IBM_COBOL_EXECUTABLE)
+    foreach(required BERYL_IBM_COBOL_EXECUTABLE BERYL_IBM_SCU_EXECUTABLE)
+      if(NOT EXISTS "${${required}}")
+        message(FATAL_ERROR "IBM Linux profile requires an existing ${required}")
+      endif()
+    endforeach()
+    set(directory "${CMAKE_CURRENT_BINARY_DIR}/compiler-matrix/ibm_linux")
+    file(MAKE_DIRECTORY "${directory}")
+    foreach(fixture accounts accounts_bug codec_vectors generated_records)
+      add_custom_command(OUTPUT "${directory}/${fixture}"
+        COMMAND "${CMAKE_COMMAND}" "-DCOMPILER=${BERYL_IBM_COBOL_EXECUTABLE}"
+          "-DSCU=${BERYL_IBM_SCU_EXECUTABLE}" "-DOUTPUT=${directory}/${fixture}"
+          "-DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/tests/cobol/${fixture}.cob"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompileIBM.cmake"
+        DEPENDS "tests/cobol/${fixture}.cob" cmake/CompileIBM.cmake VERBATIM)
+      add_custom_target(matrix_ibm_linux_${fixture} ALL DEPENDS "${directory}/${fixture}")
+    endforeach()
+    add_test(NAME matrix_ibm_linux_acceptance COMMAND test_acceptance $<TARGET_FILE:beryl>
+      "${directory}/accounts" "${directory}/accounts_bug" "${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME matrix_ibm_linux_codec COMMAND test_records --cobol $<TARGET_FILE:beryl> "${directory}/codec_vectors" c)
+    add_test(NAME matrix_ibm_linux_generation COMMAND test_generate $<TARGET_FILE:beryl> "${directory}/generated_records")
+    add_test(NAME matrix_ibm_linux_driver COMMAND "${CMAKE_COMMAND}"
+      "-DBERYL=$<TARGET_FILE:beryl>" "-DTEST_DRIVER=$<TARGET_FILE:test_driver>"
+      "-DCOMPILER=${BERYL_IBM_COBOL_EXECUTABLE}" "-DSCU=${BERYL_IBM_SCU_EXECUTABLE}"
+      "-DSUBPROGRAM=${CMAKE_CURRENT_SOURCE_DIR}/tests/cobol/clamp_subprogram.cob"
+      "-DWORK=${directory}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/IBMDriverTest.cmake")
+    set_tests_properties(matrix_ibm_linux_acceptance matrix_ibm_linux_codec
+      matrix_ibm_linux_generation matrix_ibm_linux_driver PROPERTIES TIMEOUT 90
+      LABELS "compiler-matrix;ibm_linux" ENVIRONMENT "${BERYL_MATRIX_ibm_linux_ENVIRONMENT}")
   endif()
 endif()

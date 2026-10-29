@@ -13,20 +13,19 @@ requires an IBMid. The user registered and supplied the official archive
 
 Archive SHA-256:
 `d7922a5d716918252879d3050a346a17f5f0a3bc7a4f26415ba374a59fad861b`.
-The Ubuntu packages were extracted locally for inspection. `cob2 -V` identifies
-version **1.2.0.9**, built 2026-01-05. The first attempt to compile a fixed-format
-copy of the portable accounts fixture exited unsuccessfully with:
+`cob2 -V` identifies version **1.2.0.9**, built 2026-01-05. An initial local
+extraction reported an expired evaluation license. This was a setup error: the
+evaluation package's normal `postinst` runs IBM's `xlcmp` initialization utility,
+which extraction alone omitted. Installing the supplied Ubuntu runtime,
+evaluation-license and compiler packages normally with `dpkg -i` at their
+default `/opt/ibm` paths resolved the diagnostic. The supplied evaluation media
+then compiled the accounts fixture successfully. No replacement media was
+needed, and no license data, system clock or license checks were modified.
 
-```text
-The license for the Evaluation version of IBM COBOL for Linux, 01.02.0000.0009 compiler product has expired.
-```
-
-The compiler's diagnostic and supplied README direct trial questions to
-`COBOL.Linux.Trial@ca.ibm.com`. Current evaluation media or a resolution from IBM
-is required before testing can continue. No IBM-compiled fixture or passed IBM
-compatibility result exists. The local Ubuntu/WSL host is also outside the
-specific Ubuntu releases advertised on IBM's product page, so an eventual
-successful local test would not establish vendor-certified host support.
+The compiler's diagnostic and supplied README list
+`COBOL.Linux.Trial@ca.ibm.com` for actual trial questions. The local Ubuntu/WSL
+host is outside the specific Ubuntu releases advertised on IBM's product page;
+local compatibility results do not establish vendor-certified host support.
 
 Linux x86 compiler validation would still be separate from z/OS validation.
 

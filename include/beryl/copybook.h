@@ -9,7 +9,7 @@ typedef enum { B_TEXT, B_DISPLAY, B_PACKED } FieldStorage;
 typedef struct {
     char name[256];
     unsigned level, digits, scale;
-    bool signed_value;
+    bool signed_value, unsigned_packed_c;
     FieldStorage storage;
     size_t offset, size;
 } Field;

@@ -23,7 +23,7 @@ working-storage section.
     05 unsigned-odd pic 9(3) comp-3.
     05 unsigned-even pic 9(4) comp-3.
     05 scaled-packed pic s9(3)v9(2) comp-3.
-01 case-number binary-long.
+01 case-number pic 9(4).
 procedure division.
     open input input-file
     open output output-file

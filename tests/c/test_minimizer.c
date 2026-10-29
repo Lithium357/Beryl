@@ -30,6 +30,14 @@ int main(int argc,char **argv) {
     reduced=read_file(structured,"minimized.bin");Layout layout;char error[512];assert(!copybook_load(schema,&layout,error));assert(!record_validate(&layout,reduced.data,reduced.len,error));assert(reduced.len==11);for(size_t i=0;i<reduced.len;i++)assert(reduced.data[i]==' ');bytes_free(&reduced);
     char strict[B_PATH];assert(!path_join(strict,root,"strict"));args[4]=strict;args[9]="--predicate";args[10]="signature";assert(!invoke(args));reduced=read_file(strict,"minimized.bin");assert(reduced.len==11);bytes_free(&reduced);
     char limited[B_PATH];assert(!path_join(limited,root,"limited"));args[4]=limited;args[6]="1";args[9]=NULL;assert(!invoke(args));reduced=read_file(limited,"minimized.bin");assert(reduced.len==11);bytes_free(&reduced);Bytes report=read_file(limited,"minimization.json");report.data[report.len]=0;assert(strstr((char *)report.data,"try-limit"));bytes_free(&report);
+    char packed_out[B_PATH],packed_cpy[B_PATH];assert(!path_join(packed_out,root,"packed-c"));assert(!path_join(packed_cpy,root,"packed.cpy"));
+    put(input,"B\x09\x99\x9c");put(packed_cpy,"01 r. 05 key-field pic X. 05 u pic 9(4) comp-3.");
+    Config packed;config_defaults(&packed);strcpy(packed.target,target);strcpy(packed.input,input);strcpy(packed.expected,expected);strcpy(packed.results,results);packed.has_expected=true;
+    Result packed_result;assert(!execute_case(&packed,&packed_result));assert(packed_result.outcome==FAIL_ASSERTION);char packed_case[B_PATH];strcpy(packed_case,packed_result.directory);result_free(&packed_result);config_free(&packed);
+    char *packed_args[]={cli,"minimize",packed_case,"--out",packed_out,"--copybook",packed_cpy,"--unsigned-packed-sign","c",NULL};assert(!invoke(packed_args));
+    reduced=read_file(packed_out,"minimized.bin");assert(reduced.len==4&&reduced.data[0]==' '&&reduced.data[1]==0&&reduced.data[2]==0&&reduced.data[3]==0x0c);assert(!copybook_load(packed_cpy,&layout,error));assert(!record_validate(&layout,reduced.data,reduced.len,error));bytes_free(&reduced);
+    report=read_file(packed_out,"minimization.json");report.data[report.len]=0;assert(strstr((char *)report.data,"\"unsigned_packed_sign\":\"c\""));bytes_free(&report);
+    packed_args[8]="d";assert(invoke(packed_args)==2);
     /* A changed approved baseline must not silently become a different failure. */
     char tampered[B_PATH];assert(!path_join(tampered,saved,"expected.bin"));put(tampered,"changed");assert(invoke(args)==2);
     printf("minimizer: raw and structure-preserving reduction, signature predicate, bounded trials, original preservation and archive integrity passed\nevidence: %s\n",root);return 0;

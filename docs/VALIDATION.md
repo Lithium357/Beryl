@@ -1,5 +1,28 @@
 # Actual validation
 
+## IBM Linux checkpoint (2026-10-29)
+
+The complete C17 `-Werror` matrix now passes **48/48 suites with no skips** in
+Debug (34.66 s) and **48/48 with no skips** under ASan/UBSan (53.17 s), with no
+sanitizer findings. The four additional suites compile and execute the actual
+IBM COBOL for Linux **1.2.0.9** evaluation supplied by the user. They check
+golden output, archived replay and boundary-regression detection; three exact
+25-byte numeric storage vectors; 100 generated records; and a generated
+BY REFERENCE driver preserving return code 7 and rejecting extra records.
+
+IBM uses `scu -f -N -E`, `cob2 -q64 -qsrcformat(extend)`, and
+`COBRTOPT=FS=QSAM` for these fixed raw-record fixtures. Its exact unsigned packed
+vectors use sign C. New C/API and CLI checks exercise unsigned C/F decoding,
+selectable encoding, preservation of signed fields, rejection of negative
+unsigned storage, generation metadata, valid campaign bytes and structured
+minimization with the selected canonical sign. Default unsigned output remains F.
+
+The apparent trial expiration from the first attempt was resolved by completing
+the normal package initialization; replacement media was unnecessary. The local
+WSL host is not a vendor-certified platform result, and IBM z/OS remains
+unvalidated. See COMPILER_MATRIX.md and VENDOR_ACCESS.md for configuration and
+scope. Proprietary binaries and licenses are not committed.
+
 ## Multiple compiler checkpoint (2026-10-29)
 
 The expanded real-compiler matrix passed **44/44 CTest suites with no skips** in
@@ -16,10 +39,10 @@ exit statuses and extra-record refusal. Strict standards modes run the portable
 golden/replay/regression fixtures only. See COMPILER_MATRIX.md for exact compiler
 configuration, runtime isolation and JVM reservation/status requirements.
 
-IBM Linux evaluation media supplied by the user identifies itself as 1.2.0.9
-but rejects the first compilation because its evaluation license has expired.
-Rocket access and IBM z/OS validation remain pending. Those are recorded in
-VENDOR_ACCESS.md rather than counted as passed or skipped compiler suites.
+The initial IBM Linux trial expiration diagnostic came from an incomplete local
+extraction. Completing the normal evaluation-package installation resolved it;
+see VENDOR_ACCESS.md. The 44-suite checkpoint above predates IBM integration.
+Rocket access and IBM z/OS validation remain pending.
 
 ## Final 0.5.0 checkpoint (2026-10-28)
 
