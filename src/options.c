@@ -1,4 +1,5 @@
 #include "beryl/options.h"
+#include "beryl/fixtures.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +12,7 @@ int parse_u64(const char *s,uint64_t max,uint64_t *out) {
 }
 static int string(char *out,size_t capacity,const char *s) {if(strlen(s)>=capacity)return -1;strcpy(out,s);return 0;}
 int config_option(Config *c,const char *flag,const char *v) {
+    if(!strcmp(flag,"--file")||!strcmp(flag,"--output"))return fixtures_option(c,flag,v);
     if(!strcmp(flag,"--exec"))return string(c->target,sizeof c->target,v);
     if(!strcmp(flag,"--input"))return string(c->input,sizeof c->input,v);
     if(!strcmp(flag,"--expected")){c->has_expected=true;return string(c->expected,sizeof c->expected,v);}
@@ -32,6 +34,7 @@ int config_option(Config *c,const char *flag,const char *v) {
     return -2;
 }
 int config_resolve(Config *c,char error[512]) {
+    if(fixtures_validate(c,error)<0)return -1;
     if(!*c->target){strcpy(error,"--exec is required");return -1;}
     if(!safe_name(c->input_name)||!safe_name(c->output_name)||!strcmp(c->input_name,c->output_name)){strcpy(error,"--input-name/--output-name require distinct safe relative paths");return -1;}
     if(c->has_expected&&*c->reference){strcpy(error,"--expected and --reference are alternative oracles");return -1;}

@@ -2,6 +2,7 @@
 #include "beryl/options.h"
 #include "beryl/record_codec.h"
 #include "beryl/report.h"
+#include "beryl/fixtures.h"
 #include <errno.h>
 #include <dirent.h>
 #include <inttypes.h>
@@ -51,6 +52,7 @@ static int saved_result(const char *directory,size_t cap,Result *r,bool nested) 
     b.data[b.len]=0;char *state=NULL;
     for(char *line=strtok_r((char *)b.data,"\n",&state);line;line=strtok_r(NULL,"\n",&state)) {
         char *v=strchr(line,'=');if(!v)goto done;*v++=0;
+        int extra=fixtures_result_field(r,line,v);if(extra<0)goto done;if(extra>0)continue;
         if(!strcmp(line,"classification")){for(int i=PASS;i<=REGRESSION_CANDIDATE;i++)if(!strcmp(v,outcome_name((Outcome)i))){r->outcome=(Outcome)i;classified=true;}if(!classified)goto done;}
         else if(!strcmp(line,"diagnostic")) {
             size_t n=strlen(v);if(n%2||n/2>=sizeof r->diagnostic)goto done;
@@ -68,6 +70,7 @@ static int saved_result(const char *directory,size_t cap,Result *r,bool nested) 
     bool stdout_truncated=r->out.truncated,stderr_truncated=r->err.truncated,output_truncated=r->output.truncated;
     if(read_at(dir,"stdout.bin",cap,&r->out)<0||r->out.truncated||read_at(dir,"stderr.bin",cap,&r->err)<0||r->err.truncated)goto done;
     r->out.truncated=stdout_truncated;r->err.truncated=stderr_truncated;
+    if(fixtures_saved_capture(dir,cap,r)<0)goto done;
     if(!r->missing_output) {
         char hash[65];if(read_at(dir,"output.bin",cap,&r->output)<0||r->output.truncated)goto done;
         hash_bytes(r->output.data,r->output.len,hash);if(strcmp(hash,r->output_hash))goto done;r->output.truncated=output_truncated;

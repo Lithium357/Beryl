@@ -1,4 +1,5 @@
 #include "beryl/report.h"
+#include "beryl/fixtures.h"
 #include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,6 +40,7 @@ int save_reports(const Config *c, const Result *r, int directory) {
     FILE *f = open_memstream(&buffer, &len); if (!f) return -1;
     fputs("{\n  \"schema\":\"beryl-result-1\",\n  \"version\":\"" BERYL_VERSION "\",\n  \"classification\":", f);
     json_string(f, outcome_name(r->outcome)); fputs(",\n  \"diagnostic\":", f); json_string(f, r->diagnostic);
+    fixtures_json(f,c,r);
     fputs(",\n  \"reference\":", f);
     if(r->reference) {
         fputs("{\"path\":",f);json_string(f,c->reference);fputs(",\"directory\":",f);json_string(f,r->reference->directory);

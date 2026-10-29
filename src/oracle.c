@@ -1,11 +1,12 @@
 #include "beryl/beryl.h"
+#include "beryl/fixtures.h"
 #include <stdio.h>
 #include <string.h>
 const char *outcome_name(Outcome o) {
     static const char *names[]={"PASS","FAIL_ASSERTION","CRASH","TIMEOUT","EXEC_ERROR","HARNESS_ERROR","UNVERIFIED","REGRESSION_CANDIDATE"};
     return names[o];
 }
-static int equivalent(const Bytes *a,const Bytes *b,bool crlf) {
+int bytes_equivalent(const Bytes *a,const Bytes *b,bool crlf) {
     size_t i=0,j=0;
     while(i<a->len && j<b->len) {
         if(crlf && a->data[i]=='\r' && i+1<a->len && a->data[i+1]=='\n')i++;
@@ -34,13 +35,14 @@ void compare_reference(const Config *c,Result *r,const Result *ref) {
             }
             r->differences|=2;
         } else {
-            if(!equivalent(&r->output,&ref->output,c->normalize_crlf))r->differences|=2;
+            if(!bytes_equivalent(&r->output,&ref->output,c->normalize_crlf))r->differences|=2;
         }
     }
     if(c->comparison==2) {
-        if(!equivalent(&r->out,&ref->out,c->normalize_crlf))r->differences|=4;
-        if(!equivalent(&r->err,&ref->err,c->normalize_crlf))r->differences|=8;
+        if(!bytes_equivalent(&r->out,&ref->out,c->normalize_crlf))r->differences|=4;
+        if(!bytes_equivalent(&r->err,&ref->err,c->normalize_crlf))r->differences|=8;
     }
+    if(fixtures_reference(c,r,ref)<0)return;
     if(r->differences) {
         r->outcome=REGRESSION_CANDIDATE;
         snprintf(r->diagnostic,sizeof r->diagnostic,"reference difference: status=%d output=%d stdout=%d stderr=%d; review expected behavior",!!(r->differences&1),!!(r->differences&2),!!(r->differences&4),!!(r->differences&8));

@@ -1,0 +1,7 @@
+# IBM/z/OS status
+
+IBM Enterprise COBOL and z/OS support is **not implemented or validated**. The executable runner currently targets Linux. Passing GnuCOBOL tests, using IBM-flavored compiler options, or running an older mainframe emulator would not establish Enterprise COBOL/z/OS compatibility.
+
+The access investigation on 2026-10-23 found IBM's [Z Xplore learning platform](https://www.ibm.com/products/z/resources/zxplore), which advertises no-cost hands-on training, and the [Open Mainframe Project course FAQ](https://github.com/openmainframeproject/cobol-programming-course/blob/master/FAQ.md), which directs learners to enroll for system access. These are potential routes to request access, not an anonymously available test service. No account was opened, charges incurred, or project-validation access obtained. Availability and permission to run arbitrary project tests would need confirmation with the provider.
+
+An adapter needs a real authorized environment and compiler before compatibility can be claimed. Validation must cover callable-driver linkage, compiler/version/options, USS versus data-set allocation, fixed/variable record storage, character encoding, signed DISPLAY and packed-decimal conventions, statuses/abends, reproducibility and platform-specific process/resource control. Current ASCII codecs and Linux process-group/rlimit behavior are not mainframe emulation. This access/validation requirement remains the external blocker.

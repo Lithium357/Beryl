@@ -1,6 +1,6 @@
 # Beryl
 
-Beryl runs existing Linux batch executables against binary fixtures, checks an explicit exit status and optional golden output, and archives enough evidence to replay the case. It also generates seeded boundary records from a strict subset of free-format copybooks. The tool and its tests are C17; COBOL is used only for integration fixtures. No network, accounts, telemetry, or source modifications are involved in running it.
+Beryl runs existing Linux batch executables against binary fixtures, checks an explicit exit status and optional golden output, and archives enough evidence to replay the case. It also generates seeded boundary records from a strict subset of COBOL record declarations. The tool and its tests are C17; COBOL is used for integration fixtures and explicitly generated drivers. No network, accounts, telemetry, or changes to the user's source are involved in running it.
 
 On Linux, install a C compiler, CMake 3.16+, and optionally GnuCOBOL. For Ubuntu, the packages are `build-essential cmake gnucobol`. GnuCOBOL is needed to compile the supplied integration fixtures, but is not needed to build Beryl or run precompiled targets. On Windows, execute these commands inside WSL:
 
@@ -15,7 +15,7 @@ cmake --build build-asan --parallel
 ctest --test-dir build-asan --output-on-failure -V
 ```
 
-CMake compiles the COBOL fixtures with `cobc -x -free -o <output> <source>`. Without `cobc`, CTest reports the three COBOL suites as **Skipped**, and still runs the C tests. Assertions remain enabled in test executables in Release builds too. [Actual validation results](docs/VALIDATION.md) describe the tested environment.
+CMake compiles the COBOL fixtures with `cobc -x -free -o <output> <source>`. Without `cobc`, CTest explicitly skips the six COBOL suites and still runs the C tests. The optional mapped-line coverage test also skips if its validated GnuCOBOL 3.2/gcov toolchain is unavailable. Assertions remain enabled in Release tests. [Actual validation results](docs/VALIDATION.md) describe the tested environment.
 
 ```sh
 ./build/beryl run --exec ./build/accounts \
@@ -76,6 +76,8 @@ Seeded [fuzz campaigns](docs/FUZZING.md) support valid field mutation, intention
 
 An optional [GnuCOBOL coverage adapter](docs/COVERAGE.md) builds and checks compiler-mapped COBOL line observations against gcov counters. It reports only verified mappings and leaves branch coverage unavailable.
 
-The implemented scope includes the runner, strict record parsing/codecs, generation, JSON/JUnit reports, reference execution, bounded fuzz campaigns, minimization, explicit callable drivers and optional mapped-line coverage. Target execution still supports one input and one required output. IBM/z/OS support remains unvalidated. See [compatibility](docs/COMPATIBILITY.md) and the [one-page COBOL primer](docs/COBOL_PRIMER.md). A difference indicates a contract mismatch; it does not prove the golden data represents correct business behavior.
+The runner also supports [declared file sets](docs/FILE_SETS.md) with up to eight additional inputs/outputs, all captured and restored by replay. These work with golden/reference comparisons, static campaign fixtures and primary-record reduction.
+
+The implemented scope includes the runner, strict record parsing/codecs, generation, JSON/JUnit reports, reference execution, bounded fuzz campaigns, minimization, explicit callable drivers, fixed-format/COPY handling and optional mapped-line coverage. [IBM/z/OS support remains unvalidated](docs/IBM_ZOS_STATUS.md) pending access to the actual platform/compiler. See [compatibility](docs/COMPATIBILITY.md), the [COBOL primer](docs/COBOL_PRIMER.md), and [changelog](CHANGELOG.md). A difference indicates a contract mismatch; it does not prove the golden data represents correct business behavior.
 
 The repository's existing `LICENSE` has been preserved without selecting or replacing a license.

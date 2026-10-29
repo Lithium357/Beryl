@@ -1,4 +1,4 @@
-# Phase 1 test contract
+# Execution and replay contract
 
 `beryl run` resolves the executable to an absolute path, reads bounded regular input/golden files, and creates a fresh `case-XXXXXX` directory with `mkdtemp`. It archives the raw fixtures before execution, copies input bytes into `work/<input-name>`, and invokes `execve` with `work/` as cwd. Stdin is `/dev/null`. No COBOL source is changed. Paths and arguments have a 4095-byte limit; there are at most 64 extra arguments.
 
@@ -39,3 +39,7 @@ JSON paths/arguments are byte strings: printable ASCII is literal, JSON-sensitiv
 JUnit contains one suite and one testcase per archived run. PASS has no failure element; UNVERIFIED is skipped with a no-oracle explanation; assertion/crash/timeout outcomes are failures; execution/harness errors are errors. Durations are seconds with millisecond precision, formatted using integer arithmetic. Suites can be collected by CI using the result-directory glob `**/junit.xml`.
 
 The replay format remains `beryl-1`, so version 0.1 archives can still be replayed. JSON/XML summaries are additional outputs; replay reads the validated line-oriented manifest and raw fixtures.
+
+## Declared file sets (version 0.5)
+
+The primary-only format remains `beryl-1`. Archives declaring additional files use `beryl-2`; both are supported by the current reader. Additional inputs and golden outputs are separately snapshotted/hashed, all declared paths are collision-checked, and replay restores the full configuration. See FILE_SETS.md for flags, caps, archive names, reference behavior and reduction semantics. Older clients must reject `beryl-2` rather than produce results with an incomplete fixture set.

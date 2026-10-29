@@ -13,6 +13,7 @@ typedef struct {char signature[65],directory[B_PATH];unsigned count;} Group;
 uint64_t monotonic_ms(void) {struct timespec t;if(clock_gettime(CLOCK_MONOTONIC,&t)<0)return 0;return (uint64_t)t.tv_sec*1000+(uint64_t)t.tv_nsec/1000000;}
 static size_t evidence_bytes(const Result *r) {
     size_t n=r->out.len+r->err.len+r->output.len;
+    for(size_t i=0;i<r->extra_count;i++)n+=r->extra[i].bytes.len;
     return n+(r->reference?evidence_bytes(r->reference):0);
 }
 static bool failing(Outcome o) {return o!=PASS&&o!=UNVERIFIED;}
@@ -47,8 +48,14 @@ int fuzz_cli(int argc,char **argv) {
     if(source.data&&copy_to(dir,"copybook.cpy",&source)<0){strcpy(error,"cannot archive copybook");goto fail;}
     if(seed.data&&copy_to(dir,"seed.bin",&seed)<0){strcpy(error,"cannot archive seed");goto fail;}
     if(c.has_expected&&(copy_to(dir,"expected.bin",&expected)<0||path_join(c.expected,root,"expected.bin")<0)){strcpy(error,"cannot archive golden oracle");goto fail;}
+    size_t extra_snapshot=0;
+    for(unsigned kind=0;kind<2;kind++)for(size_t i=0;i<(kind?c.output_count:c.input_count);i++) {
+        FileSpec *spec=kind?&c.outputs[i]:&c.inputs[i];if(kind&&!spec->oracle)continue;Bytes bytes={0};char name[64];snprintf(name,sizeof name,"seed-%s-%02zu.bin",kind?"expected":"input",i);
+        if(read_bytes(spec->path,kind?c.max_capture:c.max_input,&bytes)<0||bytes.truncated||copy_to(dir,name,&bytes)<0||path_join(spec->path,root,name)<0){bytes_free(&bytes);strcpy(error,"cannot snapshot additional campaign fixture");goto fail;}
+        extra_snapshot+=bytes.len;bytes_free(&bytes);
+    }
     groups=calloc((size_t)runs,sizeof *groups);f=open_memstream(&summary,&summary_len);if(!groups||!f){strcpy(error,"out of memory starting campaign");goto fail;}
-    c.seeded=true;uint64_t state=c.seed,start=monotonic_ms();size_t completed=0,group_count=0,flaky=0,unconfirmed=0,failures=0,total=source.len+seed.len+expected.len;const char *stop="complete";
+    c.seeded=true;uint64_t state=c.seed,start=monotonic_ms();size_t completed=0,group_count=0,flaky=0,unconfirmed=0,failures=0,total=source.len+seed.len+expected.len+extra_snapshot;const char *stop="complete";
     fprintf(f,"{\"schema\":\"beryl-campaign-1\",\"version\":\"" BERYL_VERSION "\",\"seed\":\"%" PRIu64 "\",\"prng\":\"splitmix64-v1\",\"mode\":",c.seed);json_string(f,mode);fputs(",\"source_format\":",f);json_string(f,format);fprintf(f,",\"requested_runs\":%" PRIu64 ",\"budget_ms\":%" PRIu64 ",\"max_total_bytes\":%" PRIu64 ",\"cases\":[\n",runs,budget,byte_limit);
     for(size_t i=0;i<(size_t)runs;i++) {
         uint64_t elapsed=monotonic_ms()-start;if(elapsed>=budget){stop="time-budget";break;}if(total>=byte_limit){stop="artifact-budget";break;}
@@ -60,7 +67,7 @@ int fuzz_cli(int argc,char **argv) {
         if(path_join(c.input,case_root,"input.bin")<0||path_join(c.results,case_root,"results")<0){strcpy(error,"case path too long");goto fail;}
         c.case_index=i;unsigned configured=c.timeout_ms;uint64_t remaining=(budget-elapsed)/(*c.reference?4U:2U);if(!remaining)remaining=1;if(c.timeout_ms>remaining)c.timeout_ms=(unsigned)remaining;
         Result result;(void)execute_case(&c,&result);char signature[65];failure_signature(&result,signature);bool reproduced=false;char confirmation[B_PATH]="";
-        size_t fixture_bytes=(1U+(*c.reference?1U:0U))*(record_len+c.environment.len)+expected.len;
+        size_t fixture_bytes=(1U+(*c.reference?1U:0U))*(record_len+c.environment.len+extra_snapshot)+expected.len;
         total+=evidence_bytes(&result)+fixture_bytes;completed++;
         if(failing(result.outcome)) {
             failures++;

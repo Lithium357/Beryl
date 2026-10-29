@@ -57,9 +57,16 @@ void failure_signature(const Result *r,char hash[65]) {
     if(r->reference){hash_bytes(r->reference->out.data,r->reference->out.len,refstream);hash_bytes(r->reference->err.data,r->reference->err.len,referr);}
     char buffer[1024];int n=snprintf(buffer,sizeof buffer,"%d:%d:%d:%u:%u:%d:%d:%d:%d:%d:%s:%s:%s:%s:%s:%s",r->outcome,r->exit_code,r->signal_number,r->differences,assertion_kind(r),r->missing_output,r->output.truncated,r->err.truncated,r->reference?r->reference->exit_code:-1,r->reference?r->reference->signal_number:0,out,err,ref,stream,refstream,referr);
     hash_bytes(buffer,(size_t)n,hash);
+    for(size_t i=0;i<r->extra_count;i++) {
+        const FileCapture *a=&r->extra[i];char ah[65],bh[65]="";hash_bytes(a->bytes.data,a->bytes.len,ah);
+        const FileCapture *b=r->reference&&i<r->reference->extra_count?&r->reference->extra[i]:NULL;
+        if(b)hash_bytes(b->bytes.data,b->bytes.len,bh);
+        n=snprintf(buffer,sizeof buffer,"%s:%zu:%s:%d:%d:%s:%d:%d",hash,i,ah,a->missing,a->bytes.truncated,bh,b?b->missing:0,b?b->bytes.truncated:0);hash_bytes(buffer,(size_t)n,hash);
+    }
 }
 bool failure_equivalent(const Result *a,const Result *b,bool signature) {
     if(a->outcome!=b->outcome||a->signal_number!=b->signal_number||a->differences!=b->differences||assertion_kind(a)!=assertion_kind(b))return false;
+    if(a->extra_count!=b->extra_count)return false;
     if(!!a->reference!=!!b->reference)return false;
     if(a->reference&&(a->reference->signal_number!=b->reference->signal_number||((a->differences&1)&&(a->exit_code!=b->exit_code||a->reference->exit_code!=b->reference->exit_code))))return false;
     if(a->outcome==FAIL_ASSERTION&&assertion_kind(a)==1&&a->exit_code!=b->exit_code)return false;

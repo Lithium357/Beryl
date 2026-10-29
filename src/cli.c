@@ -3,6 +3,7 @@
 #include "beryl/campaign.h"
 #include "beryl/driver.h"
 #include "beryl/compiler_adapter.h"
+#include "beryl/options.h"
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +22,8 @@ static void help(void) {
          "       beryl --help | --version\n\n"
          "  --input-name NAME       relative input name (INPUT.DAT)\n"
          "  --output-name NAME      required output name (OUTPUT.DAT)\n"
+         "  --file NAME=PATH        additional input (repeat up to 8)\n"
+         "  --output NAME[=GOLDEN]  additional required output (repeat up to 8)\n"
          "  --expected FILE         binary golden output; otherwise UNVERIFIED\n"
          "  --reference PATH        compare with another executable in its own workspace\n"
          "  --compare POLICY        output (default), status, or all (includes streams)\n"
@@ -34,7 +37,7 @@ static void help(void) {
          "  --max-capture-bytes N   per stream/output/golden cap (1048576)\n"
          "  --max-file-bytes N      child per-file limit (16777216)\n"
          "  --compiler-version TEXT compiler provenance if known\n\n"
-         "Statuses: 0 PASS/UNVERIFIED; 1 assertion/crash/timeout; 2 usage/harness/exec error.\n"
+         "Statuses: 0 PASS/UNVERIFIED; 1 assertion/regression/crash/timeout; 2 usage/harness/exec error.\n"
          "Evidence includes raw bytes and the environment (may contain secrets).\n"
          "Resource caps are not a security sandbox; isolate untrusted targets with OS/container controls.");
 }
@@ -74,6 +77,7 @@ int cli_main(int argc,char **argv) {
         if(!strcmp(flag,"--exec")){bad=string_option(c.target,sizeof c.target,v);override=true;}
         else if(!strcmp(flag,"--input"))bad=string_option(c.input,sizeof c.input,v);
         else if(!strcmp(flag,"--expected")){bad=string_option(c.expected,sizeof c.expected,v);c.has_expected=true;}
+        else if(!strcmp(flag,"--file")||!strcmp(flag,"--output"))bad=config_option(&c,flag,v);
         else if(!strcmp(flag,"--reference")){bad=string_option(c.reference,sizeof c.reference,v);reference_override=true;}
         else if(!strcmp(flag,"--compare")) { if(!strcmp(v,"output"))c.comparison=0;else if(!strcmp(v,"status"))c.comparison=1;else if(!strcmp(v,"all"))c.comparison=2;else bad=1; }
         else if(!strcmp(flag,"--normalize-crlf")) { if(!strcmp(v,"0"))c.normalize_crlf=false;else if(!strcmp(v,"1"))c.normalize_crlf=true;else bad=1; }
@@ -100,6 +104,7 @@ int cli_main(int argc,char **argv) {
         if(bad){fprintf(stderr,"error: invalid or oversized value for %s; see beryl --help for limits\n",flag);goto done;}
     }
     if(!*c.target || !*c.input){fputs("error: run requires --exec and --input; see beryl run --help\n",stderr);goto done;}
+    char config_error[512];if(config_resolve(&c,config_error)<0){fprintf(stderr,"error: %s\n",config_error);goto done;}
     if(!safe_name(c.input_name)||!safe_name(c.output_name)||!strcmp(c.input_name,c.output_name)) { fputs("error: --input-name and --output-name must be distinct safe relative paths (no absolute paths, '.', '..', empty components or backslashes)\n",stderr);goto done; }
     char resolved[B_PATH];
     if(!realpath(c.target,resolved)){fprintf(stderr,"error: --exec %s: %s; provide an existing executable\n",c.target,strerror(errno));goto done;}

@@ -4,11 +4,14 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
-#define BERYL_VERSION "0.4.0"
+#define BERYL_VERSION "0.5.0"
 #define B_PATH 4096
 #define B_ARGS 64
 #define B_ENV_LIMIT (1024U * 1024U)
+#define B_EXTRA_FILES 8
 typedef struct { unsigned char *data; size_t len; bool truncated; } Bytes;
+typedef struct {char name[512],path[B_PATH],hash[65];bool oracle;unsigned seen;} FileSpec;
+typedef struct {Bytes bytes;char hash[65];bool missing;} FileCapture;
 typedef struct {
     char target[B_PATH], input[B_PATH], expected[B_PATH], results[B_PATH];
     char input_name[B_PATH], output_name[B_PATH], compiler[256];
@@ -21,6 +24,7 @@ typedef struct {
     unsigned timeout_ms, cpu_seconds; size_t max_input, max_capture, max_file;
     int expected_exit; bool has_expected;
     Bytes environment;
+    size_t input_count,output_count;FileSpec inputs[B_EXTRA_FILES],outputs[B_EXTRA_FILES];
 } Config;
 typedef enum { PASS, FAIL_ASSERTION, CRASH, TIMEOUT, EXEC_ERROR, HARNESS_ERROR, UNVERIFIED, REGRESSION_CANDIDATE } Outcome;
 typedef struct Result {
@@ -31,6 +35,8 @@ typedef struct Result {
     Bytes out, err, output;
     struct Result *reference;
     unsigned differences; /* status=1, output=2, stdout=4, stderr=8 */
+    size_t extra_count;FileCapture extra[B_EXTRA_FILES];
+    char extra_input_hash[B_EXTRA_FILES][65],extra_expected_hash[B_EXTRA_FILES][65];
 } Result;
 int read_bytes(const char *path, size_t limit, Bytes *b);
 int read_at(int root, const char *path, size_t limit, Bytes *b);
@@ -51,6 +57,7 @@ int save_result(const Config *c, const Result *r, int archive);
 int execute_case(Config *c, Result *r);
 void result_free(Result *r);
 void compare_reference(const Config *c, Result *candidate, const Result *reference);
+int bytes_equivalent(const Bytes *a,const Bytes *b,bool normalize_crlf);
 void config_defaults(Config *c);
 void config_free(Config *c);
 int config_capture_environment(Config *c);

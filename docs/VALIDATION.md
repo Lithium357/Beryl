@@ -1,5 +1,19 @@
 # Actual validation
 
+## Final 0.5.0 checkpoint (2026-10-28)
+
+| Configuration | Actual result |
+| --- | --- |
+| Debug, GCC warnings as errors, GnuCOBOL 3.2 | 17/17 suites passed, 9.55 s |
+| Debug, ASan/UBSan, warnings as errors | 17/17 suites passed, no sanitizer findings, 16.38 s |
+| Release, no cobc on PATH | All 11 C suites passed; all six COBOL suites explicitly skipped, 4.46 s |
+
+The final suite adds declared binary file sets: additional input/output golden comparisons, NUL/non-ASCII preservation, replay, reduction with secondary fixtures retained, reference execution, total input budget, path collisions/traversal, missing output, selected truncation, and refusal of altered additional fixture bytes. File-set replay uses `beryl-2` to prevent older readers from silently dropping files; legacy primary-only cases remain readable.
+
+Manual documented instrument/run/collect commands also passed. Inspectable artifacts remain in ignored `.beryl/0.5-instrumented`, `.beryl/0.5-runs`, `.beryl/0.5-coverage`, and `.beryl/0.5-file-sets`. The coverage example reports **8/10 mapped COBOL lines observed**, with branch coverage explicitly unavailable; the file-set example passes and preserves its four-byte binary secondary output. Independent PowerShell JSON/.NET XML parsing accepted the generated coverage and case reports and confirmed the `beryl-2` replay header. Runtime/compile environments remain private archived data and are not committed.
+
+GitHub push-triggered CI status was not independently confirmed: the connected workflow reader is limited to PR-triggered runs, and a read-only public API request returned 404. The results above are actual local execution, not a claim of remote CI success. Work stays on main, with verified milestones pushed individually. IBM/z/OS remains an external access/validation blocker documented in IBM_ZOS_STATUS.md; no platform compatibility is inferred from the Linux tests. Mapped-line coverage collection is implemented; feedback-guided mutation/branch coverage is not claimed.
+
 ## Verified COBOL-line coverage checkpoint (2026-10-28)
 
 All sixteen suites passed in Debug (8.41 s) and ASan/UBSan (13.00 s), with a focused rerun after final completion-marker changes. The end-to-end adapter compiles actual GnuCOBOL/GCC instrumentation, refuses collection before execution, verifies the known hit at COBOL line 23 and miss at line 25, runs the opposite branch and observes line 25, then refuses collection after source modification. Only compiler-mapped source lines count; generated C/runtime counters and unverified branch percentages are excluded. Tests explicitly skip this adapter when GnuCOBOL 3.2/gcov is unavailable rather than claiming coverage.
