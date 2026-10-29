@@ -74,6 +74,8 @@ Seeded [fuzz campaigns](docs/FUZZING.md) support valid field mutation, intention
 
 [Copybook preprocessing](docs/PREPROCESSING.md) optionally resolves COPY through GnuCOBOL and records compiler provenance. Generation and record-aware commands also support explicit limited fixed-format input with `--format fixed`.
 
-The implemented scope includes the runner, strict record parsing/codecs, generation, JSON/JUnit reports, reference execution, bounded fuzz campaigns and minimization. Target execution still supports one input and one required output. Verified coverage and IBM/z/OS support are future work. See [compatibility](docs/COMPATIBILITY.md) and the [one-page COBOL primer](docs/COBOL_PRIMER.md). A difference indicates a contract mismatch; it does not prove the golden data represents correct business behavior.
+An optional [GnuCOBOL coverage adapter](docs/COVERAGE.md) builds and checks compiler-mapped COBOL line observations against gcov counters. It reports only verified mappings and leaves branch coverage unavailable.
+
+The implemented scope includes the runner, strict record parsing/codecs, generation, JSON/JUnit reports, reference execution, bounded fuzz campaigns, minimization, explicit callable drivers and optional mapped-line coverage. Target execution still supports one input and one required output. IBM/z/OS support remains unvalidated. See [compatibility](docs/COMPATIBILITY.md) and the [one-page COBOL primer](docs/COBOL_PRIMER.md). A difference indicates a contract mismatch; it does not prove the golden data represents correct business behavior.
 
 The repository's existing `LICENSE` has been preserved without selecting or replacing a license.

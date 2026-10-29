@@ -1,5 +1,9 @@
 # Actual validation
 
+## Verified COBOL-line coverage checkpoint (2026-10-28)
+
+All sixteen suites passed in Debug (8.41 s) and ASan/UBSan (13.00 s), with a focused rerun after final completion-marker changes. The end-to-end adapter compiles actual GnuCOBOL/GCC instrumentation, refuses collection before execution, verifies the known hit at COBOL line 23 and miss at line 25, runs the opposite branch and observes line 25, then refuses collection after source modification. Only compiler-mapped source lines count; generated C/runtime counters and unverified branch percentages are excluded. Tests explicitly skip this adapter when GnuCOBOL 3.2/gcov is unavailable rather than claiming coverage.
+
 ## Fixed-format and preprocessing checkpoint (2026-10-28)
 
 All fifteen suites passed in Debug (8.65 s) and ASan/UBSan (14.66 s). New checks cover fixed sequence/indicator/text/identification columns, comments, CRLF, rejected continuation/debug/tab forms, fixed-source generation, actual free/fixed COPY expansion through GnuCOBOL and exclusive result directories. The compiler's expanded output was verified to be free-format in both cases and is parsed accordingly. Compiler diagnostics, executable/version provenance, argv and resolved digests are retained.
