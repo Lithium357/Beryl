@@ -38,11 +38,15 @@ a one-year student developer license. Its
 provides the route to request the software.
 
 Beryl compatibility development is not automatically covered by a personal
-educational license simply because Beryl is free software. Ask Rocket to confirm
-the permitted evaluation route for an independent open-source tool vendor,
-including Linux x86-64 compiler/runtime access and publication of compatibility
-results. No request has been sent on the user's behalf, no Rocket compiler has
-been installed, and no Rocket compatibility result is claimed.
+educational license simply because Beryl is free software. On 2026-10-29, with
+the user's explicit approval, the Ubuntu Personal Edition request was submitted
+through Rocket's official form. The request identifies Beryl as an independent
+FOSS testing tool and asks whether the license permits compatibility development
+and publication of results, or whether another evaluation license is required.
+Rocket's page confirmed successful submission and stated that its team would
+reply. Contact details are not stored in this repository. Installer delivery
+and the licensing clarification remain pending; no Rocket compiler has been
+installed and no Rocket compatibility result is claimed.
 
 ## IBM z/OS
 
