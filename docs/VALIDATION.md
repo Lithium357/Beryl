@@ -1,5 +1,26 @@
 # Actual validation
 
+## Multiple compiler checkpoint (2026-10-29)
+
+The expanded real-compiler matrix passed **44/44 CTest suites with no skips** in
+the C17 Debug `-Werror` build (29.32 s), and **44/44 with no skips** in a separate
+ASan/UBSan `-Werror` build (40.40 s), with no sanitizer findings. The existing
+17 suites remain enabled. New profiles cover GCC COBOL 15.2, GnuCOBOL 3.1.2,
+GnuCOBOL 3.2 IBM/MF and strict standards modes, opensource COBOL 1.5.2J UTF-8,
+and Java-targeting COBOL 4J 2.1.0-hotfix1 on OpenJDK 21.0.12.1.
+
+The four-suite profiles verify actual fixed-file output and archived replay,
+boundary-regression detection, independent signed DISPLAY/COMP-3 byte vectors,
+100 generated numeric records, and generated callable drivers including nonzero
+exit statuses and extra-record refusal. Strict standards modes run the portable
+golden/replay/regression fixtures only. See COMPILER_MATRIX.md for exact compiler
+configuration, runtime isolation and JVM reservation/status requirements.
+
+IBM Linux evaluation media supplied by the user identifies itself as 1.2.0.9
+but rejects the first compilation because its evaluation license has expired.
+Rocket access and IBM z/OS validation remain pending. Those are recorded in
+VENDOR_ACCESS.md rather than counted as passed or skipped compiler suites.
+
 ## Final 0.5.0 checkpoint (2026-10-28)
 
 | Configuration | Actual result |

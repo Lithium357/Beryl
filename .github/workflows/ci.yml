@@ -9,6 +9,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y gnucobol
-      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBERYL_SANITIZERS=${{ matrix.sanitizers }} -DCMAKE_C_FLAGS=-Werror
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBERYL_SANITIZERS=${{ matrix.sanitizers }} -DBERYL_COMPILER_MATRIX=ON -DCMAKE_C_FLAGS=-Werror
       - run: cmake --build build --parallel
       - run: ctest --test-dir build --output-on-failure -V

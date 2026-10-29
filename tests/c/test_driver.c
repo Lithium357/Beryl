@@ -17,11 +17,15 @@ int main(int argc,char **argv) {
     generate[3]="bad\"name";assert(invoke(generate)==2);generate[3]="CLAMPREC";generate[5]="0";assert(invoke(generate)==2);generate[5]="65537";assert(invoke(generate)==2);
     if(argc>=4){
         char program[B_PATH],subprogram[B_PATH],input[B_PATH],expected[B_PATH],results[B_PATH];assert(!path_join(program,root,"call-test"));assert(realpath(argv[3],subprogram));assert(!path_join(input,root,"input"));assert(!path_join(expected,root,"expected"));assert(!path_join(results,root,"results"));
+        if(!strcmp(argv[2],"--prebuilt")) {assert(argc==4);assert(realpath(argv[3],program));}
+        else {
         char *compile[24]={argv[2]};size_t n=1;
         if(argc==4){compile[n++]="-x";compile[n++]="-free";}
         else for(int i=4;i<argc;i++)compile[n++]=argv[i];
         compile[n++]="-o";compile[n++]=program;compile[n++]=source;compile[n++]=subprogram;compile[n]=NULL;
-        assert(!invoke(compile));put(input,"099");put(expected,"100");
+        assert(!invoke(compile));
+        }
+        put(input,"099");put(expected,"100");
         char *run[]={cli,"run","--exec",program,"--input",input,"--expected",expected,"--expected-exit","7","--results",results,NULL};assert(!invoke(run));
         put(input,"100");assert(!invoke(run));put(input,"100100");assert(invoke(run)==1);
         puts("COBOL driver: explicit linkage call, record transformation, return-code preservation and extra-record refusal passed");

@@ -34,6 +34,77 @@ additional installed compilers. These optional paths never trigger downloads or
 license activation. The compiler must have its matching headers, configuration
 and runtime libraries available; do not mix different versions' libcob libraries.
 
+For separate local installations, `BERYL_MATRIX_<profile>_ENVIRONMENT` accepts
+semicolon-separated `NAME=value` assignments for compilation and execution.
+The profiles are `gnu_312`, `opensource_cobol`, `gcobol`, `gnu_ibm`, `gnu_mf`,
+`gnu_cobol85`, `gnu_cobol2002`, and `gnu_cobol2014`. This allows each compiler
+to select its own `COB_CONFIG_DIR`, `COB_COPY_DIR`, `COB_CFLAGS`, `COB_LDFLAGS`
+and `LD_LIBRARY_PATH`, including when the invoking shell has another version
+configured. Empty values override inherited settings; supply the compiler's
+required include/link flags when overriding its defaults.
+
+## opensource COBOL and older GnuCOBOL
+
+The additional native profiles use the same four integration suites as GCC
+COBOL. The tested upstream releases are:
+
+- [GnuCOBOL 3.1.2](https://ftp.gnu.org/gnu/gnucobol/gnucobol-3.1.2.tar.xz).
+  It was built locally with GCC 15.2 using `CFLAGS=-std=gnu17`,
+  `--without-db --without-curses` and a separate installation prefix.
+- [opensource COBOL 1.5.2J UTF-8](https://github.com/opensourcecobol/opensource-cobol/tree/v1.5.2J-utf8),
+  commit `8470e7cb754fcf9bebcf741fd60b8bee1c88eb3f`.
+  Its compiler/runtime build used `-std=gnu17 -fcommon
+  -Wno-implicit-function-declaration` with GMP/Berkeley DB headers and libraries.
+  Its generated C also needs `-std=gnu17 -fcommon` on GCC 15; without `-fcommon`,
+  linking the two-module callable driver fails on duplicate `cob_unifunc` symbols.
+  This is a legacy toolchain requirement, not a change to the COBOL fixture.
+
+These dependencies were installed in local prefixes. Their binaries are not
+vendored or downloaded automatically by Beryl's build.
+
+## Java-targeting COBOL 4J
+
+Configure the Java profile with an installed compiler, Java runtime and runtime JAR:
+
+```sh
+cmake -S . -B build-matrix -DBERYL_COMPILER_MATRIX=ON \
+  -DBERYL_COBOL4J_EXECUTABLE=/path/to/cobj \
+  -DBERYL_JAVA_EXECUTABLE=/path/to/java \
+  -DBERYL_COBOL4J_RUNTIME=/path/to/libcobj.jar \
+  '-DBERYL_MATRIX_cobol4j_ENVIRONMENT=PATH=/path/to/jdk/bin:/usr/bin:/bin;CLASSPATH=/path/to/libcobj.jar'
+```
+
+Set `COB_CONFIG_DIR`/`COB_COPY_DIR` in that environment too if the invoking shell
+has them configured for another compiler. The matrix compiles actual COBOL into
+Java classes. Small C17 exec launchers use absolute class paths while leaving
+Beryl's private working directory and resource limits in place. They are test
+fixtures, not a new Beryl dependency or a general Java deployment adapter.
+
+The tested release is [COBOL 4J 2.1.0-hotfix1](https://github.com/opensourcecobol/opensourcecobol4j/tree/v2.1.0-hotfix1),
+commit `e71a28206a374c4fa096d8c2ae7f5a1e682ec1d4`, built with OpenJDK
+21.0.12.1. The compiler/runtime were built from the tagged source with the
+upstream `configure --enable-utf8`, `make` and `make install` workflow and a
+separate prefix. The first upstream Gradle runtime build downloaded its normal
+dependencies; no account was required.
+
+The default generated Java main loses GOBACK's RETURN-CODE. The test profile
+supplies a compiler configuration including `default.conf` and
+`enable-program-status-register: yes`; its driver test requires the actual
+process exit status to be 7, along with correct output bytes and extra-record
+rejection. This setting is part of the tested configuration.
+
+The JVM test launchers use `-Xms16m -Xmx64m -XX:+UseSerialGC
+-XX:MaxMetaspaceSize=64m -XX:CompressedClassSpaceSize=16m
+-XX:ReservedCodeCacheSize=32m -Xss256k -XX:ActiveProcessorCount=2` to fit Beryl's
+existing 512 MiB virtual-address limit. A default JVM failed to start under that
+limit. These settings are for the small integration fixtures, not a universal
+heap configuration for arbitrary applications.
+
+For ordinary Beryl runs, Java can be selected directly with `--exec` and repeated
+`--arg` values for JVM options, the absolute class path and the generated class
+name. Keep classes/JARs immutable across replay: Beryl hashes the selected
+executable and input/output evidence, not every transitive runtime dependency.
+
 Coverage and COPY preprocessing remain separate GnuCOBOL-specific adapters. The
 matrix does not imply that those adapters support every compiler.
 
@@ -52,5 +123,37 @@ isolated extraction needed `-B/usr/lib/gcc/x86_64-linux-gnu/15/` and its runtime
 directory on `LD_LIBRARY_PATH`/`LIBRARY_PATH`. Normal package installations
 should not need this extraction-specific setup.
 
-Other compiler builds and proprietary trial access are still being evaluated;
-they are not included in this passed count.
+This is the first checkpoint; additional compiler results are recorded below.
+Proprietary trial access and its current blockers are documented in VENDOR_ACCESS.md.
+
+## Expanded checkpoint: 2026-10-29
+
+The final **C17 Debug / `-Werror` build passed 44/44 suites** with no skips in
+29.32 seconds. A separate **ASan + UBSan / `-Werror` build passed 44/44 suites**
+with no skips in 40.40 seconds and no sanitizer findings.
+
+| Profile | Integration suites passed in each build |
+|---|---:|
+| Existing C tests plus GnuCOBOL 3.2 default integration | 17 |
+| GnuCOBOL 3.2 IBM mode | 4 |
+| GnuCOBOL 3.2 MF mode | 4 |
+| GnuCOBOL 3.2 strict COBOL 85/2002/2014 | 3 |
+| GCC COBOL 15.2 | 4 |
+| GnuCOBOL 3.1.2 with its own runtime | 4 |
+| opensource COBOL 1.5.2J UTF-8 | 4 |
+| opensource COBOL 4J 2.1.0-hotfix1 / OpenJDK 21 | 4 |
+
+The same fixtures and assertions run across the four-suite profiles. The
+earlier default-JVM initialization failures and Java main status mismatch were
+resolved by the explicit tested configuration above, without changing Beryl's
+runner limits or weakening its status/output oracle.
+
+Beryl and the C assertion programs are sanitizer-instrumented in the second
+build. The separate COBOL runtimes/JVM are not. The tiny Java exec launchers are
+also uninstrumented, like the other external fixture targets, because ASan's
+own virtual-address reservation is incompatible with the child's address-space
+limit before `main` runs.
+
+The existing GitHub Actions workflow now enables the GnuCOBOL dialect matrix.
+The full multi-compiler results above were obtained locally; no remote CI run
+is asserted here. Optional proprietary compiler results remain pending.

@@ -3,6 +3,8 @@
 ## Unreleased
 
 - Add an optional real-compiler CTest matrix for GCC COBOL and GnuCOBOL vendor/standards dialects, covering binary output, replay, storage codecs, generated records and explicit callable drivers.
+- Extend the matrix to isolated GnuCOBOL 3.1.2, opensource COBOL 1.5.2J and Java-targeting COBOL 4J, with per-profile runtime environments and explicit Java program-status handling.
+- Enable GnuCOBOL dialect checks in the existing CI workflow; document actual proprietary compiler access blockers separately from validated open-source results.
 
 ## 0.5.0
 
