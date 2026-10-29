@@ -17,6 +17,9 @@ ctest --test-dir build-asan --output-on-failure -V
 
 CMake compiles the COBOL fixtures with `cobc -x -free -o <output> <source>`. Without `cobc`, CTest explicitly skips the six COBOL suites and still runs the C tests. The optional mapped-line coverage test also skips if its validated GnuCOBOL 3.2/gcov toolchain is unavailable. Assertions remain enabled in Release tests. [Actual validation results](docs/VALIDATION.md) describe the tested environment.
 
+An optional [real-compiler matrix](docs/COMPILER_MATRIX.md) checks GCC COBOL and
+additional GnuCOBOL dialects against the same binary fixtures and generated drivers.
+
 ```sh
 ./build/beryl run --exec ./build/accounts \
   --input tests/records/boundary.bin --input-name INPUT.DAT \

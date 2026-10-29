@@ -74,7 +74,7 @@ int main(int argc, char **argv) {
         }
         assert(!fclose(combined));
         char *run[] = {cli, "run", "--exec", argv[2], "--input", input, "--expected", input, "--results", results, NULL}; assert(!invoke(run));
-        puts("GnuCOBOL: all 100 generated records pass NUMERIC checks and echo byte-for-byte, including negative zero");
+        puts("COBOL: all 100 generated records pass NUMERIC checks and echo byte-for-byte, including negative zero");
     }
     puts("generation: 512 API records validated; 100-record corpora deterministic; seed divergence, six boundaries, malformed rejection, seed/count limits, overwrite and symlink refusal passed");
     printf("evidence: %s\n", base); return 0;

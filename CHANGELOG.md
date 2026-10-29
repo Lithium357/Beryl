@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add an optional real-compiler CTest matrix for GCC COBOL and GnuCOBOL vendor/standards dialects, covering binary output, replay, storage codecs, generated records and explicit callable drivers.
+
 ## 0.5.0
 
 - Reduce reproducible archived cases with bounded trials, preserved failure categories/signatures, optional copybook-aware simplification and retained originals.

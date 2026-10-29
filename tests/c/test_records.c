@@ -102,7 +102,7 @@ static void cobol(const char *cli, const char *fixture) {
     if (!pid) { execl(cli, cli, "run", "--exec", fixture, "--input", input, "--expected", input, "--results", results, (char *)NULL); _exit(99); }
     int status; while (waitpid(pid, &status, 0) < 0) assert(errno == EINTR);
     assert(WIFEXITED(status) && !WEXITSTATUS(status));
-    puts("GnuCOBOL: three independent 25-byte storage vectors agree with C encoder, including signed DISPLAY and odd/even packed digits");
+    puts("COBOL: three independent 25-byte storage vectors agree with C encoder, including signed DISPLAY and odd/even packed digits");
 }
 int main(int argc, char **argv) {
     if (argc == 4 && !strcmp(argv[1], "--cobol")) cobol(argv[2], argv[3]);
