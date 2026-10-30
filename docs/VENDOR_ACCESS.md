@@ -19,7 +19,10 @@ evaluation package's normal `postinst` runs IBM's `xlcmp` initialization utility
 which extraction alone omitted. Installing the supplied Ubuntu runtime,
 evaluation-license and compiler packages normally with `dpkg -i` at their
 default `/opt/ibm` paths resolved the diagnostic. The supplied evaluation media
-then compiled the accounts fixture successfully. No replacement media was
+then compiled the accounts fixture successfully. A repeat of the four IBM
+compatibility suites on 2026-10-29 passed 4/4 in 10.52 seconds, covering
+execution/replay, numeric storage, generation and the callable driver.
+No replacement media was
 needed, and no license data, system clock or license checks were modified.
 
 The compiler's diagnostic and supplied README list
@@ -44,9 +47,25 @@ through Rocket's official form. The request identifies Beryl as an independent
 FOSS testing tool and asks whether the license permits compatibility development
 and publication of results, or whether another evaluation license is required.
 Rocket's page confirmed successful submission and stated that its team would
-reply. Contact details are not stored in this repository. Installer delivery
-and the licensing clarification remain pending; no Rocket compiler has been
-installed and no Rocket compatibility result is claimed.
+reply. Contact details are not stored in this repository.
+
+The user subsequently supplied `Visual COBOL for Eclipse Personal Edition Ubuntu
+11.0.zip`, containing the Ubuntu x64 installer, release notes and a Personal
+Edition XML license. Archive SHA-256:
+`f91cb994a42b5a1a30127071bf2a752c1075658b07d245cda0696eca11a73c2f`.
+The supplied download email identifies the XML as the included license; it does
+not address Beryl's use or publication of compatibility results.
+
+The installer's documented `-EULA` extraction command failed with a tar-extraction
+diagnostic before installation. The license documents were recovered directly
+from the extracted payload for review. No installation or activation was
+performed. The supplied EULA's section 4(a)(v) prohibits publishing or disclosing
+evaluations or benchmarking of the licensed software. Rocket's
+[Personal Edition terms](https://www.rocketsoftware.com/sites/default/files/media/documents/visual-cobol-enterprise-addtl-license-auth-software-products-doc-3-16-26.pdf)
+also restrict the edition to personal educational and non-commercial activities.
+Clarification of Beryl compatibility development and permission to publish its
+results remain pending; possession of a license file alone does not answer
+those questions. No Rocket compatibility result is claimed.
 
 ## IBM z/OS
 
