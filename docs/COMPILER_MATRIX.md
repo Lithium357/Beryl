@@ -209,3 +209,37 @@ ASan/UBSan and `-Werror` (53.17 s), with no sanitizer findings. These counts
 include all 44 earlier suites plus IBM's four actual-compiler suites. The
 sanitizers instrument Beryl and its C assertion programs, not IBM's proprietary
 compiler/runtime or the other external runtimes. Remote CI is not asserted.
+
+## Rocket Visual COBOL for Eclipse Personal Edition
+
+The optional `rocket` profile uses the user-supplied Ubuntu 11.0 distribution,
+whose native compiler reports **11.0.0.84, 64-bit**. Install the product and its
+license separately before configuring Beryl; CMake never installs or activates
+proprietary software. The user confirmed that the intended non-commercial use
+had been checked with a professional; see VENDOR_ACCESS.md for local setup.
+
+```sh
+cmake -S . -B build-matrix -DBERYL_COMPILER_MATRIX=ON \
+  -DBERYL_ROCKET_COBOL_EXECUTABLE=/opt/rocketsoftware/VisualCOBOL/bin/cob \
+  '-DBERYL_MATRIX_rocket_ENVIRONMENT=COBDIR=/opt/rocketsoftware/VisualCOBOL;PATH=/opt/rocketsoftware/VisualCOBOL/bin:/usr/bin:/bin;LD_LIBRARY_PATH=/opt/rocketsoftware/VisualCOBOL/lib'
+cmake --build build-matrix --parallel
+ctest --test-dir build-matrix -L rocket --output-on-failure
+```
+
+The profile compiles the unchanged fixtures and generated driver with
+`cob -x -C 'sourceformat(free)'`. The four existing native integration suites
+verify raw fixed SEQUENTIAL output, archived replay and deliberate boundary
+regressions; exact signed DISPLAY and signed/unsigned packed vectors; 100 valid
+generated records and byte-for-byte echo; and explicit BY REFERENCE calls with
+return status 7 and extra-record rejection. Default unsigned packed sign F
+matches this tested Rocket configuration. No oracle normalization or fixture
+changes were required. These small local fixtures do not establish complete
+language coverage, a redistributable runtime, or vendor-certified WSL support.
+COPY preprocessing and mapped-line coverage remain GnuCOBOL-specific adapters.
+
+On 2026-10-29 the complete C17 `-Werror` matrix passed **52/52 suites without
+skips** in Debug (39.11 s) and **52/52 without skips** under ASan/UBSan
+(73.57 s), with no sanitizer findings. All 48 previous suites remain enabled;
+the four Rocket suites passed in each build. Sanitizers instrument Beryl and
+its C assertion programs, not the external compiler/runtime binaries. Results
+are from local execution; no remote CI result is asserted.

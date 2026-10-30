@@ -58,14 +58,24 @@ not address Beryl's use or publication of compatibility results.
 
 The installer's documented `-EULA` extraction command failed with a tar-extraction
 diagnostic before installation. The license documents were recovered directly
-from the extracted payload for review. No installation or activation was
-performed. The supplied EULA's section 4(a)(v) prohibits publishing or disclosing
-evaluations or benchmarking of the licensed software. Rocket's
+from the extracted payload for review. The supplied EULA's section 4(a)(v)
+prohibits publishing or disclosing evaluations or benchmarking of the licensed
+software. Rocket's
 [Personal Edition terms](https://www.rocketsoftware.com/sites/default/files/media/documents/visual-cobol-enterprise-addtl-license-auth-software-products-doc-3-16-26.pdf)
 also restrict the edition to personal educational and non-commercial activities.
-Clarification of Beryl compatibility development and permission to publish its
-results remain pending; possession of a license file alone does not answer
-those questions. No Rocket compatibility result is claimed.
+The user subsequently confirmed that Beryl's use is non-commercial, that they
+checked its permissibility with a professional, and that work should proceed.
+Installation and testing proceed on that basis.
+
+The normal installer completed successfully from a native Linux temporary
+directory at `/opt/rocketsoftware/VisualCOBOL`. Required packages were `libgc1`,
+`unzip` and `uuid-runtime`, plus the existing OpenJDK 21 installation. The
+compiler identifies itself as **11.0.0.84, 64-bit**. The supplied XML was imported
+through Rocket's standard license-administration utility. The native licensing
+daemon initially started before `uuidgen` was present, registering a different
+IPC socket from its clients. Restarting that process after installing UUID
+support restored the vendor status check and compilation. No license checks or
+license files were patched. See COMPILER_MATRIX.md for the tested configuration.
 
 ## IBM z/OS
 

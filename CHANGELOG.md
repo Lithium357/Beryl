@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add an optional Rocket Visual COBOL 11.0 native compiler profile, checking golden output/replay, exact numeric storage, generated records and callable-driver status handling.
 - Validate the actual IBM COBOL for Linux 1.2.0.9 evaluation with source-format conversion, explicit QSAM fixed-record runtime selection and portable callable-driver status storage.
 - Add `--unsigned-packed-sign f|c` to generation, campaigns and structured minimization; decode C/F unsigned packed fields and record the selected output convention in JSON. Default output remains F.
 - Correct the initial IBM trial-expiration finding: normal evaluation-package initialization resolves the incomplete-extraction diagnostic.

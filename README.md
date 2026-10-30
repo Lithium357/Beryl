@@ -20,7 +20,7 @@ CMake compiles the COBOL fixtures with `cobc -x -free -o <output> <source>`. Wit
 An optional [real-compiler matrix](docs/COMPILER_MATRIX.md) checks GCC COBOL and
 additional GnuCOBOL dialects against the same binary fixtures and generated drivers.
 It also checks older GnuCOBOL, native opensource COBOL, Java-targeting COBOL 4J
-and an optionally installed IBM COBOL for Linux evaluation. For IBM's observed
+and optionally installed IBM COBOL for Linux and Rocket Visual COBOL compilers. For IBM's observed
 unsigned packed representation, `generate`, `fuzz` and structured `minimize`
 accept `--unsigned-packed-sign c`; the default remains `f`.
 
