@@ -37,6 +37,16 @@ API exposes `layout_set_unsigned_packed_sign` and `Field.unsigned_packed_c`.
 Exact storage-vector tests cover the compiler configurations in
 COMPILER_MATRIX.md. IBM Linux results do not establish EBCDIC or z/OS support.
 
+Each numeric integration test checks 2,002 records: three directed vectors and
+the complete -999..999 integer range, with decimal scaling and multiplication
+computed independently by the COBOL fixture. The C decoder tests also enumerate
+all 65,536 two-byte patterns for each of signed three-digit, unsigned three-digit
+and signed two-digit packed fields (196,608 cases), plus all 256 byte values for
+signed and unsigned one-digit DISPLAY (512 cases). Accepted packed patterns
+must decode to an independently calculated decimal string, re-encode exactly,
+and respect exact-sized versus undersized output buffers. Rejected patterns
+remain outside Beryl's documented conventions even if a compiler tolerates them.
+
 Examples: `PIC 9(3)V9(2)` value 1.20 stores ASCII `00120`. Signed DISPLAY value -12.34 with `S9(3)V9(2)` stores ASCII `0123t`. Packed `S9(3)` -123 is hex `12 3d`; packed `S9(4)` +1234 is `01 23 4c`; unsigned `9(4)` 1234 is `01 23 4f`. Tests cover these independently specified vectors, 38-digit precision, invalid digits/signs/padding, buffers, zeros, and codec round trips.
 
 ## Deterministic corpus policy

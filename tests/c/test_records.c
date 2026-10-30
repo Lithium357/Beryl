@@ -37,7 +37,61 @@ static void reject(const char *source) {
     if (!copybook_parse(source, strlen(source), &layout, error)) { fprintf(stderr, "unexpected parser success: %s\n", source); abort(); }
     assert(*error && !layout.count);
 }
+static void exhaustive_storage(void) {
+    const char *pictures[] = {"S9(3) COMP-3", "9(3) COMP-3", "S9(2) COMP-3"};
+    char source[100], error[512], text[80], expected[80];
+    for (size_t profile = 0; profile < 3; profile++) {
+        Layout layout;
+        snprintf(source, sizeof source, "01 r. 05 f pic %s.", pictures[profile]);
+        assert(!copybook_parse(source, strlen(source), &layout, error));
+        Field *field = &layout.fields[0];
+        assert(field->size == 2);
+        for (unsigned bits = 0; bits < 65536; bits++) {
+            unsigned a = bits >> 12, b = (bits >> 8) & 15U;
+            unsigned c = (bits >> 4) & 15U, sign = bits & 15U;
+            bool accepted = b < 10 && c < 10 &&
+                (profile == 2 ? a == 0 : a < 10) &&
+                (profile == 1 ? (sign == 12 || sign == 15) : (sign == 12 || sign == 13));
+            unsigned char raw[2] = {(unsigned char)(bits >> 8), (unsigned char)bits};
+            int status = field_decode(field, raw, text, sizeof text, error);
+            assert((status == 0) == accepted);
+            if (!accepted) continue;
+            unsigned magnitude = a * 100 + b * 10 + c;
+            snprintf(expected, sizeof expected, "%s%u", sign == 13 ? "-" : "", magnitude);
+            assert(!strcmp(text, expected));
+            /* Every accepted representation must encode back exactly, including
+               negative zero and the explicitly selected unsigned C/F sign. */
+            field->unsigned_packed_c = sign == 12;
+            unsigned char encoded[2];
+            assert(!field_encode(field, expected, encoded, error));
+            assert(!memcmp(raw, encoded, sizeof raw));
+            size_t required = strlen(expected) + 1;
+            memset(text, '#', sizeof text);
+            assert(!field_decode(field, raw, text, required, error));
+            assert(text[required] == '#');
+            assert(field_decode(field, raw, text, required - 1, error) < 0);
+        }
+    }
+    for (unsigned signed_field = 0; signed_field < 2; signed_field++) {
+        Layout layout;
+        snprintf(source, sizeof source, "01 r. 05 f pic %s9.", signed_field ? "S" : "");
+        assert(!copybook_parse(source, strlen(source), &layout, error));
+        for (unsigned byte = 0; byte < 256; byte++) {
+            bool negative = signed_field && byte >= 'p' && byte <= 'y';
+            bool accepted = (byte >= '0' && byte <= '9') || negative;
+            unsigned char raw = (unsigned char)byte;
+            int status = field_decode(&layout.fields[0], &raw, text, sizeof text, error);
+            assert((status == 0) == accepted);
+            if (!accepted) continue;
+            snprintf(expected, sizeof expected, "%s%u", negative ? "-" : "",
+                byte - (negative ? (unsigned)'p' : (unsigned)'0'));
+            assert(!strcmp(text, expected));
+        }
+    }
+    puts("records: 196608 packed storage patterns and 512 DISPLAY bytes checked exhaustively; exact decimal values, re-encoding and decode capacity verified");
+}
 static void unit(void) {
+    exhaustive_storage();
     Layout layout; char error[512]; assert(!copybook_parse(schema, strlen(schema), &layout, error));
     assert(layout.count == 8 && layout.size == 25); assert(layout.fields[7].offset == 22);
     assert(!strcmp(layout.fields[1].name, "REC.NUMBERS.UNSIGNED-DISPLAY"));
@@ -108,12 +162,25 @@ static void cobol(const char *cli, const char *fixture,const char *packed_sign) 
         for (size_t i = 0; i < layout.count; i++) assert(!field_encode(&layout.fields[i], values[row][i], record + layout.fields[i].offset, error));
         assert(fwrite(record, 1, sizeof record, f) == sizeof record);
     }
+    for (int number = -999; number <= 999; number++) {
+        int magnitude = number < 0 ? -number : number;
+        char whole[16], scaled[16], tens[16], positive[16], positive_tens[16];
+        snprintf(whole, sizeof whole, "%d", number);
+        snprintf(scaled, sizeof scaled, "%s%d.%02d", number < 0 ? "-" : "", magnitude / 100, magnitude % 100);
+        snprintf(tens, sizeof tens, "%d", number * 10);
+        snprintf(positive, sizeof positive, "%d", magnitude);
+        snprintf(positive_tens, sizeof positive_tens, "%d", magnitude * 10);
+        const char *sweep[] = {"SWP", positive, scaled, whole, tens, positive, positive_tens, scaled};
+        for (size_t i = 0; i < layout.count; i++)
+            assert(!field_encode(&layout.fields[i], sweep[i], record + layout.fields[i].offset, error));
+        assert(fwrite(record, 1, sizeof record, f) == sizeof record);
+    }
     assert(!fclose(f));
     pid_t pid = fork(); assert(pid >= 0);
     if (!pid) { execl(cli, cli, "run", "--exec", fixture, "--input", input, "--expected", input, "--results", results, (char *)NULL); _exit(99); }
     int status; while (waitpid(pid, &status, 0) < 0) assert(errno == EINTR);
     assert(WIFEXITED(status) && !WEXITSTATUS(status));
-    puts("COBOL: three independent 25-byte storage vectors agree with C encoder, including signed DISPLAY and odd/even packed digits");
+    puts("COBOL: 2002 independent 25-byte storage vectors agree with C encoder, including the complete -999..999 sweep, scaled DISPLAY and odd/even packed digits");
 }
 int main(int argc, char **argv) {
     if ((argc == 4 || argc == 5) && !strcmp(argv[1], "--cobol")) cobol(argv[2], argv[3],argc==5?argv[4]:"f");

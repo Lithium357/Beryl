@@ -1,5 +1,30 @@
 # Actual validation
 
+## Expanded numeric storage checkpoint (2026-10-29)
+
+The C17 `-Werror` Debug build passed **52/52 suites with no skips in 32.23 s**.
+The separate ASan/UBSan build passed **52/52 with no skips in 47.41 s**, with
+no sanitizer findings. This checkpoint expands assertions within existing
+suites rather than adding more suite names.
+
+The C tests exhaustively classify **196,608 packed patterns** (all two-byte
+patterns for three field profiles) and **512 DISPLAY bytes**. Valid packed
+patterns must produce the independently calculated decimal value, re-encode
+exactly including signed zero and unsigned C/F, and enforce decode buffer
+capacity. Invalid digit, sign and padding combinations must be rejected.
+
+Each of nine real-compiler numeric profiles now checks **2,002 records**:
+the original three directed vectors plus all integers from -999 through +999.
+COBOL independently assigns and computes signed, unsigned, scaled and multiplied
+values, compares the full 25-byte record against Beryl's encoding, and writes
+the exact expected bytes for Beryl's golden-output comparison. Profiles are
+GnuCOBOL 3.2 default/IBM/MF, GnuCOBOL 3.1.2, GCC COBOL 15.2, opensource COBOL
+1.5.2J, COBOL 4J 2.1.0-hotfix1, IBM Linux 1.2.0.9 and Rocket 11.0.0.84.
+That is **18,018 compiler-checked records per build**. Strict standards profiles
+continue to use only their portable fixtures. No production codec defect or
+compiler mismatch was found in these checks; runtime behavior outside Beryl's
+documented canonical storage rules is not inferred from C rejection tests.
+
 ## Rocket Visual COBOL checkpoint (2026-10-29)
 
 The complete C17 `-Werror` matrix passed **52/52 suites with no skips** in
